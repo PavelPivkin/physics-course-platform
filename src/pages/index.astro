@@ -44,7 +44,25 @@ const pillars = [
       <a href="#principle">Подход</a>
     </nav>
 
-    <a class="btn btn-sm launch-button" href="#platform">Смотреть проект</a>
+    <div class="header-actions">
+      <button
+        class="theme-toggle"
+        type="button"
+        data-theme-toggle
+        aria-label="Включить светлую тему"
+        aria-pressed="false"
+        title="Включить светлую тему"
+      >
+        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3.5"></circle>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"></path>
+        </svg>
+        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 15.2A8.4 8.4 0 0 1 8.8 4a8.4 8.4 0 1 0 11.2 11.2Z"></path>
+        </svg>
+      </button>
+      <a class="btn btn-sm launch-button" href="#platform">Смотреть проект</a>
+    </div>
   </header>
 
   <main id="top">

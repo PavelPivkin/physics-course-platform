@@ -17,11 +17,53 @@ const faviconPath = `${base.replace(/\/$/, "")}/favicon.svg`;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#0B1E33" />
+    <meta name="theme-color" content="#0B1E33" data-theme-color />
+    <script is:inline>
+      (() => {
+        try {
+          const savedTheme = localStorage.getItem("physics-theme");
+          if (savedTheme === "light") {
+            document.documentElement.dataset.theme = "physics-light";
+          }
+        } catch {}
+      })();
+    </script>
     <link rel="icon" href={faviconPath} type="image/svg+xml" />
     <title>{title}</title>
   </head>
   <body>
     <slot />
+    <script>
+      const themeToggle = document.querySelector<HTMLButtonElement>("[data-theme-toggle]");
+      const themeColor = document.querySelector<HTMLMetaElement>("[data-theme-color]");
+
+      const setTheme = (theme: "dark" | "light") => {
+        const isLight = theme === "light";
+        document.documentElement.dataset.theme = isLight ? "physics-light" : "physics-dark";
+        themeToggle?.setAttribute("aria-pressed", String(isLight));
+        themeToggle?.setAttribute(
+          "aria-label",
+          isLight ? "Включить тёмную тему" : "Включить светлую тему",
+        );
+        themeToggle?.setAttribute(
+          "title",
+          isLight ? "Включить тёмную тему" : "Включить светлую тему",
+        );
+        themeColor?.setAttribute("content", isLight ? "#FFFFFF" : "#0B1E33");
+
+        try {
+          localStorage.setItem("physics-theme", theme);
+        } catch {}
+      };
+
+      if (themeToggle) {
+        const initialTheme = document.documentElement.dataset.theme === "physics-light" ? "light" : "dark";
+        setTheme(initialTheme);
+        themeToggle.addEventListener("click", () => {
+          const nextTheme = document.documentElement.dataset.theme === "physics-light" ? "dark" : "light";
+          setTheme(nextTheme);
+        });
+      }
+    </script>
   </body>
 </html>

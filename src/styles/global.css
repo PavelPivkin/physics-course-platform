@@ -21,6 +21,11 @@
   --white: #ffffff;
   --muted: #a8b6c7;
   --line: rgb(99 155 242 / 22%);
+  --hero-glow: rgb(33 68 133 / 30%);
+  --panel: rgb(11 30 51 / 72%);
+  --soft-text: rgb(168 182 199 / 74%);
+  --control-border: rgb(255 255 255 / 35%);
+  --row-hover: rgb(33 68 133 / 14%);
 
   --color-base-100: var(--navy);
   --color-base-200: var(--navy-2);
@@ -31,6 +36,20 @@
   --radius-box: 0;
   --radius-field: 0.25rem;
   --radius-selector: 0.25rem;
+}
+
+[data-theme="physics-light"] {
+  color-scheme: light;
+  --navy: #ffffff;
+  --navy-2: #ffffff;
+  --white: #0b1e33;
+  --muted: #4e6278;
+  --line: rgb(33 68 133 / 18%);
+  --hero-glow: rgb(99 155 242 / 16%);
+  --panel: rgb(255 255 255 / 82%);
+  --soft-text: rgb(78 98 120 / 82%);
+  --control-border: rgb(11 30 51 / 28%);
+  --row-hover: rgb(99 155 242 / 9%);
 }
 
 * {
@@ -109,9 +128,62 @@ a {
   color: var(--white);
 }
 
-.launch-button {
+.header-actions {
+  display: flex;
+  align-items: center;
   justify-self: end;
-  border: 1px solid rgb(255 255 255 / 35%);
+  gap: 0.7rem;
+}
+
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  padding: 0;
+  border: 1px solid var(--control-border);
+  border-radius: 0.2rem;
+  background: transparent;
+  color: var(--white);
+  cursor: pointer;
+  transition: border-color 180ms ease, color 180ms ease, background 180ms ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--light-blue);
+  color: var(--light-blue);
+  background: var(--row-hover);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 3px;
+}
+
+.theme-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.theme-icon-moon {
+  display: none;
+}
+
+[data-theme="physics-light"] .theme-icon-sun {
+  display: none;
+}
+
+[data-theme="physics-light"] .theme-icon-moon {
+  display: block;
+}
+
+.launch-button {
+  border: 1px solid var(--control-border);
   border-radius: 0.2rem;
   background: transparent;
   color: var(--white);
@@ -126,7 +198,7 @@ a {
   overflow: hidden;
   padding: 9rem clamp(1.25rem, 7vw, 8rem) 4rem;
   background:
-    radial-gradient(circle at 78% 40%, rgb(33 68 133 / 30%), transparent 34%),
+    radial-gradient(circle at 78% 40%, var(--hero-glow), transparent 34%),
     var(--navy);
 }
 
@@ -295,7 +367,7 @@ h1 span {
   padding: 2.5rem 2rem 2rem;
   border-top: 1px solid var(--orange);
   border-bottom: 1px solid var(--line);
-  background: rgb(11 30 51 / 72%);
+  background: var(--panel);
   text-align: center;
   backdrop-filter: blur(10px);
 }
@@ -340,7 +412,7 @@ h1 span {
 
 .date-note {
   margin: 1.4rem 0 0;
-  color: rgb(168 182 199 / 74%);
+  color: var(--soft-text);
   font-size: 0.68rem;
 }
 
@@ -385,7 +457,7 @@ h2 {
 .pillar:hover {
   padding-right: 1.2rem;
   padding-left: 1.2rem;
-  background: rgb(33 68 133 / 14%);
+  background: var(--row-hover);
 }
 
 .pillar-index {
