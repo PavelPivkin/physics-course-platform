@@ -1,0 +1,22 @@
+{
+  "name": "physics-course-platform",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.23.4"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/check": "latest",
+    "@tailwindcss/vite": "latest",
+    "astro": "latest",
+    "daisyui": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest"
+  }
+}
