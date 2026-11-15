@@ -20,6 +20,9 @@
   --orange: #ff401c;
   --white: #ffffff;
   --muted: #a8b6c7;
+  --orange-text: var(--orange);
+  --blue-text: var(--light-blue);
+  --accent-content: #0b1e33;
   --line: rgb(99 155 242 / 22%);
   --hero-glow: rgb(33 68 133 / 30%);
   --panel: rgb(11 30 51 / 72%);
@@ -32,7 +35,7 @@
   --color-base-300: var(--deep-blue);
   --color-base-content: var(--white);
   --color-primary: var(--orange);
-  --color-primary-content: var(--white);
+  --color-primary-content: var(--accent-content);
   --radius-box: 0;
   --radius-field: 0.25rem;
   --radius-selector: 0.25rem;
@@ -44,10 +47,12 @@
   --navy-2: #ffffff;
   --white: #0b1e33;
   --muted: #4e6278;
+  --orange-text: #d93616;
+  --blue-text: #3d72b8;
   --line: rgb(33 68 133 / 18%);
   --hero-glow: rgb(99 155 242 / 16%);
   --panel: rgb(255 255 255 / 82%);
-  --soft-text: rgb(78 98 120 / 82%);
+  --soft-text: #4e6278;
   --control-border: rgb(11 30 51 / 28%);
   --row-hover: rgb(99 155 242 / 9%);
 }
@@ -150,8 +155,8 @@ a {
 }
 
 .theme-toggle:hover {
-  border-color: var(--light-blue);
-  color: var(--light-blue);
+  border-color: var(--blue-text);
+  color: var(--blue-text);
   background: var(--row-hover);
 }
 
@@ -230,7 +235,7 @@ a {
 
 .eyebrow {
   margin: 0 0 1.5rem;
-  color: var(--light-blue);
+  color: var(--blue-text);
   text-transform: uppercase;
   letter-spacing: 0.22em;
   font-size: 0.74rem;
@@ -280,7 +285,7 @@ h1 span {
   border: 1px solid var(--orange);
   border-radius: 0.2rem;
   background: var(--orange);
-  color: var(--white);
+  color: var(--accent-content);
   padding-inline: 1.5rem;
   font-weight: 300;
 }
@@ -297,7 +302,7 @@ h1 span {
 
 .text-link span {
   margin-left: 0.4rem;
-  color: var(--orange);
+  color: var(--orange-text);
 }
 
 .countdown-shell {
@@ -390,7 +395,7 @@ h1 span {
 
 .countdown-unit {
   margin: 0.4rem 0 1.75rem;
-  color: var(--orange);
+  color: var(--orange-text);
   text-transform: uppercase;
   letter-spacing: 0.28em;
   font-size: 0.78rem;
@@ -405,7 +410,7 @@ h1 span {
 }
 
 .countdown-detail strong {
-  color: var(--light-blue);
+  color: var(--blue-text);
   font-weight: 300;
   font-variant-numeric: tabular-nums;
 }
@@ -461,7 +466,7 @@ h2 {
 }
 
 .pillar-index {
-  color: var(--orange);
+  color: var(--orange-text);
   font-size: 0.82rem;
   letter-spacing: 0.15em;
 }
@@ -480,7 +485,7 @@ h2 {
 }
 
 .pillar-tag {
-  color: var(--light-blue);
+  color: var(--blue-text);
   text-transform: uppercase;
   letter-spacing: 0.15em;
   font-size: 0.7rem;
@@ -527,7 +532,7 @@ h2 {
 }
 
 .principle-diagram text {
-  fill: var(--orange);
+  fill: var(--orange-text);
   font-family: "Rubik", sans-serif;
   font-weight: 300;
   font-size: 18px;
@@ -548,11 +553,11 @@ h2 {
 }
 
 .formula-accent {
-  color: var(--orange);
+  color: var(--orange-text);
 }
 
 .formula-blue {
-  color: var(--light-blue);
+  color: var(--blue-text);
 }
 
 footer {
