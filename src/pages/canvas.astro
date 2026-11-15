@@ -1,0 +1,220 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import "../styles/canvas.css";
+
+const homeUrl = import.meta.env.BASE_URL;
+---
+
+<BaseLayout
+  title="Физическая доска — Физика"
+  description="Совместная интерактивная доска для разбора задач по физике: тела, силы, нити, формулы и схемы."
+>
+  <main class="board-app" data-board-app>
+    <header class="board-topbar">
+      <a class="board-brand" href={homeUrl} aria-label="Вернуться на главную">
+        <svg viewBox="0 0 42 42" aria-hidden="true">
+          <circle cx="21" cy="21" r="3.5"></circle>
+          <ellipse cx="21" cy="21" rx="18" ry="7.5"></ellipse>
+          <ellipse cx="21" cy="21" rx="18" ry="7.5" transform="rotate(60 21 21)"></ellipse>
+          <ellipse cx="21" cy="21" rx="18" ry="7.5" transform="rotate(120 21 21)"></ellipse>
+        </svg>
+        <span>Физика</span>
+        <span class="board-brand-section">canvas</span>
+      </a>
+
+      <div class="board-history" aria-label="История изменений">
+        <button class="icon-button" type="button" data-action="undo" title="Отменить" aria-label="Отменить">↶</button>
+        <button class="icon-button" type="button" data-action="redo" title="Повторить" aria-label="Повторить">↷</button>
+        <button class="icon-button" type="button" data-action="delete" title="Удалить выбранное" aria-label="Удалить выбранное">⌫</button>
+      </div>
+
+      <div class="board-session-actions">
+        <span class="connection-pill" data-connection-status data-state="offline">
+          <span></span> Локально
+        </span>
+        <button
+          class="theme-toggle board-theme-toggle"
+          type="button"
+          data-theme-toggle
+          aria-label="Включить светлую тему"
+          aria-pressed="false"
+          title="Включить светлую тему"
+        >
+          <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.5"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"></path>
+          </svg>
+          <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 15.2A8.4 8.4 0 0 1 8.8 4a8.4 8.4 0 1 0 11.2 11.2Z"></path>
+          </svg>
+        </button>
+        <button class="share-button" type="button" data-open-collaboration>
+          <span aria-hidden="true">↗</span> Поделиться
+        </button>
+      </div>
+    </header>
+
+    <aside class="tool-rail" aria-label="Инструменты доски">
+      <button class="tool-button is-active" type="button" data-tool="select" aria-label="Выбор и перемещение" title="Выбор (V)">
+        <span class="tool-icon">↖</span><span>Выбор</span>
+      </button>
+      <button class="tool-button" type="button" data-tool="pen" aria-label="Карандаш" title="Карандаш (P)">
+        <span class="tool-icon">✎</span><span>Карандаш</span>
+      </button>
+      <button class="tool-button" type="button" data-tool="vector" aria-label="Вектор силы" title="Вектор силы (F)">
+        <span class="tool-icon vector-icon">→</span><span>Сила</span>
+      </button>
+      <button class="tool-button" type="button" data-tool="rope" aria-label="Нить" title="Нить (R)">
+        <span class="tool-icon">⌁</span><span>Нить</span>
+      </button>
+      <div class="tool-divider"></div>
+      <button class="tool-button" type="button" data-tool="block" aria-label="Добавить брусок" title="Брусок">
+        <span class="tool-shape block-shape"></span><span>Брусок</span>
+      </button>
+      <button class="tool-button" type="button" data-tool="ball" aria-label="Добавить тело" title="Тело">
+        <span class="tool-shape ball-shape"></span><span>Тело</span>
+      </button>
+      <button class="tool-button" type="button" data-tool="pulley" aria-label="Добавить блок" title="Неподвижный блок">
+        <span class="tool-shape pulley-shape"></span><span>Блок</span>
+      </button>
+      <button class="tool-button" type="button" data-tool="text" aria-label="Добавить подпись" title="Подпись (T)">
+        <span class="tool-icon">T</span><span>Текст</span>
+      </button>
+    </aside>
+
+    <aside class="physics-panel" aria-label="Палитра физики">
+      <section class="panel-section">
+        <div class="panel-heading">
+          <p>Объект</p>
+          <button class="panel-collapse" type="button" aria-label="Свернуть панель">−</button>
+        </div>
+        <div class="selection-empty" data-selection-empty>
+          Выберите объект, чтобы изменить подпись и цвет.
+        </div>
+        <div class="selection-fields" data-selection-fields hidden>
+          <label>
+            <span>Подпись</span>
+            <input type="text" maxlength="24" data-object-label placeholder="Например, Fтяж" />
+          </label>
+          <div class="color-row" role="group" aria-label="Цвет объекта">
+            <button type="button" data-object-color="#ff401c" style="--swatch:#ff401c" aria-label="Оранжевый"></button>
+            <button type="button" data-object-color="#639bf2" style="--swatch:#639bf2" aria-label="Светло-синий"></button>
+            <button type="button" data-object-color="#0b1e33" style="--swatch:#0b1e33" aria-label="Тёмно-синий"></button>
+            <button type="button" data-object-color="#ffffff" style="--swatch:#ffffff" aria-label="Белый"></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="panel-heading"><p>Силы</p></div>
+        <div class="force-grid">
+          <button type="button" data-force="Fтяж">F<sub>тяж</sub></button>
+          <button type="button" data-force="N">N</button>
+          <button type="button" data-force="Fтр">F<sub>тр</sub></button>
+          <button type="button" data-force="T">T</button>
+          <button type="button" data-force="Fупр">F<sub>упр</sub></button>
+          <button type="button" data-force="Fₐ">F<sub>A</sub></button>
+        </div>
+        <p class="panel-hint">Выберите силу, затем протяните стрелку. Начало привяжется к центру ближайшего тела.</p>
+      </section>
+
+      <section class="panel-section formula-section">
+        <div class="panel-heading"><p>Формулы</p><span>вставить</span></div>
+        <div class="formula-list">
+          <button type="button" data-formula="F = ma"><i>F</i> = <i>ma</i></button>
+          <button type="button" data-formula="Fтяж = mg"><i>F</i><sub>тяж</sub> = <i>mg</i></button>
+          <button type="button" data-formula="Fупр = kΔℓ"><i>F</i><sub>упр</sub> = <i>kΔℓ</i></button>
+          <button type="button" data-formula="Fₐ = ρgV"><i>F</i><sub>A</sub> = <i>ρgV</i></button>
+          <button type="button" data-formula="Eₖ = mv²/2"><i>E</i><sub>к</sub> = <i>mv²</i>/2</button>
+          <button type="button" data-formula="Eₚ = mgh"><i>E</i><sub>п</sub> = <i>mgh</i></button>
+          <button type="button" data-formula="p = mv"><i>p</i> = <i>mv</i></button>
+          <button type="button" data-formula="P = UI"><i>P</i> = <i>UI</i></button>
+        </div>
+      </section>
+    </aside>
+
+    <section class="board-workspace" aria-label="Рабочая область физической доски">
+      <div class="board-coordinate" aria-hidden="true">x</div>
+      <svg
+        class="physics-canvas"
+        data-physics-canvas
+        viewBox="0 0 1600 900"
+        role="application"
+        aria-label="Интерактивная физическая доска"
+      >
+        <defs>
+          <pattern id="minorGrid" width="32" height="32" patternUnits="userSpaceOnUse">
+            <path d="M32 0H0V32" class="minor-grid-line"></path>
+          </pattern>
+          <pattern id="majorGrid" width="160" height="160" patternUnits="userSpaceOnUse">
+            <rect width="160" height="160" fill="url(#minorGrid)"></rect>
+            <path d="M160 0H0V160" class="major-grid-line"></path>
+          </pattern>
+          <marker id="forceArrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+            <path d="M0 0L12 6L0 12Z" fill="context-stroke"></path>
+          </marker>
+        </defs>
+        <rect class="canvas-background" width="1600" height="900" fill="url(#majorGrid)"></rect>
+        <g data-board-layer></g>
+        <g data-preview-layer></g>
+        <g data-cursor-layer></g>
+      </svg>
+
+      <div class="canvas-tip" data-canvas-tip>
+        <span>V</span> выберите объект · <span>F</span> нарисуйте силу · колесо — масштаб
+      </div>
+
+      <div class="zoom-controls" aria-label="Масштаб">
+        <button type="button" data-zoom="out" aria-label="Уменьшить">−</button>
+        <output data-zoom-value>100%</output>
+        <button type="button" data-zoom="in" aria-label="Увеличить">+</button>
+        <button type="button" data-zoom="fit" aria-label="Показать всю доску">⌂</button>
+      </div>
+    </section>
+
+    <dialog class="collaboration-dialog" data-collaboration-dialog>
+      <form method="dialog" class="collaboration-card">
+        <div class="dialog-heading">
+          <div>
+            <p>Совместная сессия</p>
+            <h2>Пригласить ученика</h2>
+          </div>
+          <button class="dialog-close" value="cancel" aria-label="Закрыть">×</button>
+        </div>
+
+        <div class="connection-explainer">
+          <span class="p2p-mark">P2P</span>
+          <p>После подключения изменения идут напрямую между браузерами. Небольшой сервер нужен только для знакомства участников.</p>
+        </div>
+
+        <label class="dialog-field">
+          <span>Адрес signaling-сервера</span>
+          <input type="url" data-signal-url placeholder="ws://127.0.0.1:8787" autocomplete="off" />
+        </label>
+
+        <div class="dialog-actions">
+          <button class="dialog-primary" type="button" data-create-room>Создать комнату</button>
+          <button class="dialog-secondary" type="button" data-connect-room>Подключиться</button>
+        </div>
+
+        <div class="share-result" data-share-result hidden>
+          <label>
+            <span>Ссылка для ученика</span>
+            <div>
+              <input type="text" readonly data-share-link />
+              <button type="button" data-copy-link>Копировать</button>
+            </div>
+          </label>
+        </div>
+
+        <p class="dialog-status" data-dialog-status>
+          Для локального урока запустите <code>npm run signal</code>. Для соединения через интернет сервер понадобится опубликовать с HTTPS/WSS.
+        </p>
+      </form>
+    </dialog>
+
+    <div class="board-toast" data-board-toast role="status" aria-live="polite"></div>
+  </main>
+
+  <script src="../scripts/physics-board.ts"></script>
+</BaseLayout>
