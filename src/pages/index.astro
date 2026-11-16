@@ -5,6 +5,7 @@ import { topics } from "../data/catalog";
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 const url = (path = "") => `${base}${path}`;
+const examDate = "2027-06-10T10:00:00+03:00";
 ---
 
 <BaseLayout
@@ -27,14 +28,28 @@ const url = (path = "") => `${base}${path}`;
         </div>
       </div>
 
-      <div class="route-map" aria-label="Учебный маршрут">
-        <div class="route-start"><span>01</span><strong>Тема</strong><small>о чём говорим</small></div>
-        <div class="route-line"></div>
-        <div class="route-node"><span>02</span><strong>Модель</strong><small>что происходит</small></div>
-        <div class="route-line"></div>
-        <div class="route-node accent"><span>03</span><strong>Навык</strong><small>что умею</small></div>
-        <div class="route-line"></div>
-        <div class="route-node"><span>04</span><strong>Экзамен</strong><small>как проверяют</small></div>
+      <div class="hero-side">
+        <section class="exam-countdown" data-countdown data-target={examDate} aria-label="Обратный отсчёт до ОГЭ по физике">
+          <div class="countdown-main">
+            <p>До ОГЭ по физике</p>
+            <div class="countdown-number"><strong data-days>—</strong><span>дней</span></div>
+            <small>10 июня 2027 · предварительная дата</small>
+          </div>
+          <div class="countdown-details">
+            <div><strong data-hours>—</strong><span>часов</span></div>
+            <div><strong data-minutes>—</strong><span>минут</span></div>
+          </div>
+        </section>
+
+        <div class="route-map" aria-label="Учебный маршрут">
+          <div class="route-start"><span>01</span><strong>Тема</strong><small>о чём говорим</small></div>
+          <div class="route-line"></div>
+          <div class="route-node"><span>02</span><strong>Модель</strong><small>что происходит</small></div>
+          <div class="route-line"></div>
+          <div class="route-node accent"><span>03</span><strong>Навык</strong><small>что умею</small></div>
+          <div class="route-line"></div>
+          <div class="route-node"><span>04</span><strong>Экзамен</strong><small>как проверяют</small></div>
+        </div>
       </div>
     </section>
 
@@ -83,4 +98,30 @@ const url = (path = "") => `${base}${path}`;
     <span>Физика с Пивкиным</span>
     <span>Прототип структуры платформы · 2026</span>
   </footer>
+
+  <script>
+    const countdown = document.querySelector<HTMLElement>("[data-countdown]");
+
+    if (countdown) {
+      const target = new Date(countdown.dataset.target ?? "").getTime();
+      const daysNode = countdown.querySelector<HTMLElement>("[data-days]");
+      const hoursNode = countdown.querySelector<HTMLElement>("[data-hours]");
+      const minutesNode = countdown.querySelector<HTMLElement>("[data-minutes]");
+
+      const renderCountdown = () => {
+        const remaining = Math.max(0, target - Date.now());
+        const totalMinutes = Math.floor(remaining / 60_000);
+        const days = Math.floor(totalMinutes / 1_440);
+        const hours = Math.floor((totalMinutes % 1_440) / 60);
+        const minutes = totalMinutes % 60;
+
+        if (daysNode) daysNode.textContent = new Intl.NumberFormat("ru-RU").format(days);
+        if (hoursNode) hoursNode.textContent = String(hours).padStart(2, "0");
+        if (minutesNode) minutesNode.textContent = String(minutes).padStart(2, "0");
+      };
+
+      renderCountdown();
+      window.setInterval(renderCountdown, 30_000);
+    }
+  </script>
 </BaseLayout>
