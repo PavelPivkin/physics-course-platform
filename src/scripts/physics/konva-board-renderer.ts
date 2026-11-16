@@ -87,6 +87,13 @@ export class KonvaBoardRenderer {
     };
   }
 
+  worldToScreen(point: Point): Point {
+    return {
+      x: point.x * this.camera.scale + this.camera.x,
+      y: point.y * this.camera.scale + this.camera.y,
+    };
+  }
+
   hitAt(clientX: number, clientY: number): BoardHit {
     const rect = this.container.getBoundingClientRect();
     let node: Konva.Node | null = this.stage.getIntersection({ x: clientX - rect.left, y: clientY - rect.top });

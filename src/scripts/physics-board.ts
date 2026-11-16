@@ -28,6 +28,8 @@ const taskResults = document.querySelector<HTMLElement>("[data-task-results]");
 const forceScale = document.querySelector<HTMLSelectElement>("[data-force-scale]");
 const simulationState = document.querySelector<HTMLElement>("[data-simulation-state]");
 const gravityInput = document.querySelector<HTMLInputElement>("[data-gravity]");
+const objectTooltip = document.querySelector<HTMLElement>("[data-object-tooltip]");
+const tooltipTitle = document.querySelector<HTMLElement>("[data-tooltip-title]");
 
 const COLORS = new Set(["#ff401c", "#639bf2", "#0b1e33", "#ffffff"]);
 const STORAGE_KEY = "physics-board-v1";
@@ -156,6 +158,20 @@ labelInput?.addEventListener("change", () => {
     if (!object) return;
     if (object.kind === "formula" || object.kind === "text") object.text = labelInput.value.slice(0, 80);
     else object.label = labelInput.value.slice(0, 24);
+  });
+});
+
+document.querySelectorAll<HTMLInputElement>("[data-tooltip-property]").forEach((input) => {
+  input.addEventListener("change", () => {
+    const object = scene.get(selectedId);
+    const property = input.dataset.tooltipProperty as "w" | "h" | "r";
+    const value = Number(input.value);
+    if (!object || !["block", "ball"].includes(object.kind) || !Number.isFinite(value)) return;
+    commit(() => {
+      if (property === "r" && object.kind === "ball") object.r = clamp(value, 18, 180);
+      if (property === "w" && object.kind === "block") object.w = clamp(value, 20, 1300);
+      if (property === "h" && object.kind === "block") object.h = clamp(value, 20, 900);
+    });
   });
 });
 
@@ -686,8 +702,31 @@ function updateInspector() {
     });
   }));
   const frame = selectedFrame();
+  updateObjectTooltip(selected, multiple);
   if (simulationState) simulationState.textContent = simulatingFrameId === frame?.id && simulating ? "идёт" : frame ? "готов" : "выберите фрейм";
   setSimulationButtonText(simulatingFrameId === frame?.id && simulating ? "❚❚ Пауза" : "▷ Запустить выбранный");
+}
+
+function updateObjectTooltip(selected: BoardObject | undefined, multiple: boolean) {
+  if (!objectTooltip || !selected || multiple || !["block", "ball"].includes(selected.kind)) {
+    if (objectTooltip) objectTooltip.hidden = true;
+    return;
+  }
+  objectTooltip.hidden = false;
+  if (tooltipTitle) tooltipTitle.textContent = selected.kind === "block" ? "Брусок" : "Шар";
+  objectTooltip.querySelectorAll<HTMLElement>("[data-tooltip-field]").forEach((field) => {
+    field.hidden = field.dataset.tooltipField === "r" ? selected.kind !== "ball" : selected.kind !== "block";
+  });
+  objectTooltip.querySelectorAll<HTMLInputElement>("[data-tooltip-property]").forEach((input) => {
+    const property = input.dataset.tooltipProperty as "w" | "h" | "r";
+    input.value = String(finite(selected[property], property === "r" ? 58 : property === "w" ? 170 : 105));
+  });
+  const bounds = scene.entity(selected).bounds();
+  const anchor = renderer.worldToScreen({ x: bounds.right, y: bounds.top });
+  const left = clamp(anchor.x + 14, 8, Math.max(8, canvas.clientWidth - objectTooltip.offsetWidth - 8));
+  const top = clamp(anchor.y - 8, 8, Math.max(8, canvas.clientHeight - objectTooltip.offsetHeight - 8));
+  objectTooltip.style.left = `${left}px`;
+  objectTooltip.style.top = `${top}px`;
 }
 
 function selectedFrame() {
@@ -945,6 +984,7 @@ function stepSimulation(now: number) {
 
 function updateZoom() {
   if (zoomOutput) zoomOutput.value = `${Math.round(renderer.scale * 100)}%`;
+  updateObjectTooltip(scene.get(selectedId), selectedIds.size > 1);
 }
 
 function saveAndSync() {

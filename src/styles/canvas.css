@@ -431,6 +431,27 @@
 .physics-canvas[data-tool="pan"] { cursor: grab; }
 .physics-canvas[data-tool="pan"]:active { cursor: grabbing; }
 
+.object-tooltip {
+  position: absolute;
+  z-index: 7;
+  width: 12.5rem;
+  padding: .65rem;
+  border: 1px solid var(--board-line);
+  border-radius: .4rem;
+  background: color-mix(in srgb, var(--navy) 94%, transparent);
+  box-shadow: 0 .7rem 2rem rgb(0 0 0 / 24%);
+  backdrop-filter: blur(10px);
+}
+
+.object-tooltip-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: .55rem; }
+.object-tooltip-heading strong { color: var(--white); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+.object-tooltip-heading button { width: 1.65rem; height: 1.65rem; border: 0; background: transparent; color: var(--orange-text); cursor: pointer; font-size: 1.1rem; }
+.object-tooltip-sizes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; }
+.object-tooltip-sizes label { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .3rem; color: var(--board-muted); font-size: .65rem; }
+.object-tooltip-sizes input { width: 100%; min-width: 0; height: 1.9rem; border: 1px solid var(--board-line); border-radius: .2rem; background: var(--board-surface); color: var(--white); padding: .25rem .35rem; font: inherit; }
+.object-tooltip-colors { display: flex; gap: .45rem; margin-top: .55rem; }
+.object-tooltip-colors button { width: 1.25rem; height: 1.25rem; border: 2px solid var(--navy); border-radius: 50%; outline: 1px solid var(--board-line); background: var(--swatch); cursor: pointer; }
+
 .canvas-background {
   fill: var(--board-surface);
 }

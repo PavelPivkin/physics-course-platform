@@ -186,6 +186,24 @@ const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         aria-label="Интерактивная физическая доска"
       ></div>
 
+      <div class="object-tooltip" data-object-tooltip hidden>
+        <div class="object-tooltip-heading">
+          <strong data-tooltip-title>Тело</strong>
+          <button type="button" data-action="delete" aria-label="Удалить выбранный объект" title="Удалить">×</button>
+        </div>
+        <div class="object-tooltip-sizes">
+          <label data-tooltip-field="w"><span>Ш</span><input type="number" min="20" max="1300" step="5" data-tooltip-property="w" /></label>
+          <label data-tooltip-field="h"><span>В</span><input type="number" min="20" max="900" step="5" data-tooltip-property="h" /></label>
+          <label data-tooltip-field="r"><span>R</span><input type="number" min="18" max="180" step="2" data-tooltip-property="r" /></label>
+        </div>
+        <div class="object-tooltip-colors" role="group" aria-label="Цвет границы">
+          <button type="button" data-object-color="#ff401c" style="--swatch:#ff401c" aria-label="Оранжевый"></button>
+          <button type="button" data-object-color="#639bf2" style="--swatch:#639bf2" aria-label="Светло-синий"></button>
+          <button type="button" data-object-color="#0b1e33" style="--swatch:#0b1e33" aria-label="Тёмно-синий"></button>
+          <button type="button" data-object-color="#ffffff" style="--swatch:#ffffff" aria-label="Белый"></button>
+        </div>
+      </div>
+
       <div class="canvas-tip" data-canvas-tip>
         <span>V</span> выберите объект · <span>F</span> нарисуйте силу · колесо — масштаб
       </div>
