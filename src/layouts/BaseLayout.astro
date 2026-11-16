@@ -8,7 +8,10 @@ interface Props {
 
 const { title, description } = Astro.props;
 const base = import.meta.env.BASE_URL;
-const faviconPath = `${base.replace(/\/$/, "")}/favicon.svg`;
+const publicBase = base.replace(/\/$/, "");
+const faviconPath = `${publicBase}/favicon.svg`;
+const manifestPath = `${publicBase}/manifest.webmanifest`;
+const appleTouchIconPath = `${publicBase}/icons/apple-touch-icon.png`;
 ---
 
 <!doctype html>
@@ -18,6 +21,11 @@ const faviconPath = `${base.replace(/\/$/, "")}/favicon.svg`;
     <meta name="viewport" content="width=device-width" />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#0B1E33" data-theme-color />
+    <meta name="application-name" content="Физика ОГЭ" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Физика ОГЭ" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <script is:inline>
       (() => {
         try {
@@ -29,6 +37,8 @@ const faviconPath = `${base.replace(/\/$/, "")}/favicon.svg`;
       })();
     </script>
     <link rel="icon" href={faviconPath} type="image/svg+xml" />
+    <link rel="apple-touch-icon" href={appleTouchIconPath} sizes="180x180" />
+    <link rel="manifest" href={manifestPath} />
     <title>{title}</title>
   </head>
   <body>

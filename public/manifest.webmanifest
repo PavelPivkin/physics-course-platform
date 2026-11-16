@@ -1,0 +1,56 @@
+{
+  "id": "./",
+  "name": "Физика с Пивкиным | ОГЭ 2027",
+  "short_name": "Физика ОГЭ",
+  "description": "Теория, задачи, тренажёры и интенсив для подготовки к ОГЭ по физике.",
+  "lang": "ru",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0B1E33",
+  "theme_color": "#0B1E33",
+  "orientation": "any",
+  "categories": ["education"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Учиться",
+      "short_name": "Теория",
+      "description": "Открыть карту тем",
+      "url": "learn/"
+    },
+    {
+      "name": "Решать",
+      "short_name": "Практика",
+      "description": "Открыть тренажёры",
+      "url": "practice/"
+    },
+    {
+      "name": "Интенсив",
+      "short_name": "Интенсив",
+      "description": "Открыть модули интенсива",
+      "url": "intensive/"
+    }
+  ],
+  "prefer_related_applications": false
+}
