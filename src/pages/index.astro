@@ -28,27 +28,29 @@ const examDate = "2027-06-10T10:00:00+03:00";
         </div>
       </div>
 
-      <div class="hero-side">
-        <section class="exam-countdown" data-countdown data-target={examDate} aria-label="Обратный отсчёт до ОГЭ по физике">
-          <div class="countdown-main">
-            <p>До ОГЭ по физике</p>
-            <div class="countdown-number"><strong data-days>—</strong><span>дней</span></div>
-            <small>10 июня 2027 · предварительная дата</small>
-          </div>
-          <div class="countdown-details">
-            <div><strong data-hours>—</strong><span>часов</span></div>
-            <div><strong data-minutes>—</strong><span>минут</span></div>
-          </div>
-        </section>
+      <div class="countdown-shell" data-countdown data-target={examDate} aria-label="Обратный отсчёт до ОГЭ по физике">
+        <div class="orbit-visual" aria-hidden="true">
+          <svg viewBox="0 0 520 520">
+            <circle class="orbit orbit-one" cx="260" cy="260" r="205"></circle>
+            <circle class="orbit orbit-two" cx="260" cy="260" r="143"></circle>
+            <path class="trajectory" d="M 83 345 Q 225 48 438 155"></path>
+            <circle class="body-dot" cx="83" cy="345" r="8"></circle>
+            <circle class="accent-dot" cx="438" cy="155" r="9"></circle>
+            <path class="vector" d="M260 260 L393 210"></path>
+            <path class="vector-head" d="M393 210 L373 205 M393 210 L382 228"></path>
+            <text x="405" y="205">F</text>
+          </svg>
+        </div>
 
-        <div class="route-map" aria-label="Учебный маршрут">
-          <div class="route-start"><span>01</span><strong>Тема</strong><small>о чём говорим</small></div>
-          <div class="route-line"></div>
-          <div class="route-node"><span>02</span><strong>Модель</strong><small>что происходит</small></div>
-          <div class="route-line"></div>
-          <div class="route-node accent"><span>03</span><strong>Навык</strong><small>что умею</small></div>
-          <div class="route-line"></div>
-          <div class="route-node"><span>04</span><strong>Экзамен</strong><small>как проверяют</small></div>
+        <div class="countdown-content">
+          <p>До ОГЭ по физике</p>
+          <div class="countdown-value" data-days>—</div>
+          <div class="countdown-unit">дней</div>
+          <div class="countdown-detail">
+            <span><strong data-hours>—</strong> часов</span>
+            <span><strong data-minutes>—</strong> минут</span>
+          </div>
+          <p class="date-note">10 июня 2027 · предварительная дата</p>
         </div>
       </div>
     </section>
