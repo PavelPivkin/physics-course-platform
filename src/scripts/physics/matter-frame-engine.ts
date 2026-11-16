@@ -49,13 +49,13 @@ export class MatterFrameEngine {
 
     for (const spring of this.objects.filter((object) => object.kind === "spring" && object.parentId === this.frame.id)) {
       const end = { x: value(spring.x2), y: value(spring.y2) };
-      const target = [...this.bodies.values()].sort((a, b) => Matter.Vector.magnitude(Matter.Vector.sub(a.position, end)) - Matter.Vector.magnitude(Matter.Vector.sub(b.position, end)))[0];
+      const target = (spring.targetId && this.bodies.get(spring.targetId)) || [...this.bodies.values()].sort((a, b) => Matter.Vector.magnitude(Matter.Vector.sub(a.position, end)) - Matter.Vector.magnitude(Matter.Vector.sub(b.position, end)))[0];
       if (!target || Matter.Vector.magnitude(Matter.Vector.sub(target.position, end)) > 100) continue;
       const anchor = { x: value(spring.x1), y: value(spring.y1) };
       const constraint = Matter.Constraint.create({
         pointA: anchor,
         bodyB: target,
-        length: Math.hypot(end.x - anchor.x, end.y - anchor.y),
+        length: Math.max(value(spring.restLength, Math.hypot(end.x - anchor.x, end.y - anchor.y)), 1),
         stiffness: Math.min(Math.max(value(spring.stiffness, 20) / 100, 0.02), 1),
         damping: 0.05,
       });

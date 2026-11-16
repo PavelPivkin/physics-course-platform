@@ -24,6 +24,8 @@ export type BoardObject = {
   friction?: number;
   angle?: number;
   stiffness?: number;
+  restLength?: number;
+  targetId?: string;
   temperature?: number;
   velocity?: Point;
   protons?: number;
@@ -143,11 +145,13 @@ export class PhysicsScene {
 
   descendants(frameId: string) { return this.objects.filter((object) => this.belongsToFrame(object, frameId)); }
   forcesFor(bodyId: string) { return this.objects.filter((object) => object.kind === "vector" && object.parentId === bodyId); }
+  springsFor(bodyId: string) { return this.objects.filter((object) => object.kind === "spring" && object.targetId === bodyId); }
 
   remove(ids: Set<string>) {
     const expanded = new Set(ids);
     for (const object of this.objects) {
       if ([...ids].some((id) => object.parentId === id || this.belongsToFrame(object, id))) expanded.add(object.id);
+      if (object.kind === "spring" && object.targetId && ids.has(object.targetId)) expanded.add(object.id);
     }
     this.objects = this.objects.filter((object) => !expanded.has(object.id));
     return this.objects;
@@ -165,6 +169,7 @@ export class PhysicsScene {
         for (const child of this.descendants(object.id)) this.entity(child).translate(dx, dy);
       } else if (["block", "ball"].includes(object.kind)) {
         for (const force of this.forcesFor(object.id)) this.entity(force).translate(dx, dy);
+        for (const spring of this.springsFor(object.id)) (this.entity(spring) as ForceEntity).translateEnd(dx, dy);
       }
     }
   }

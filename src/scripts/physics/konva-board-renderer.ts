@@ -14,7 +14,7 @@ export type BoardRenderState = {
 export type BoardHit = {
   objectId: string | null;
   frameSimulate: string | null;
-  handle: "end" | "resize" | null;
+  handle: "start" | "end" | "resize" | null;
 };
 
 const finite = (value: unknown, fallback = 0) => typeof value === "number" && Number.isFinite(value) ? value : fallback;
@@ -252,6 +252,10 @@ export class KonvaBoardRenderer {
       const points = springPoints(finite(object.x1), finite(object.y1), finite(object.x2), finite(object.y2));
       group.add(new Konva.Line({ points, stroke: color, strokeWidth: 4, lineJoin: "round", hitStrokeWidth: 20 }));
       group.add(this.centeredText((finite(object.x1) + finite(object.x2)) / 2, (finite(object.y1) + finite(object.y2)) / 2 - 30, `k = ${finite(object.stiffness, 20)} Н/м`, 16, PALETTE.muted));
+      if (selected) {
+        group.add(this.handle(finite(object.x1), finite(object.y1), "start"));
+        group.add(this.handle(finite(object.x2), finite(object.y2), "end"));
+      }
       return group;
     }
     if (object.kind === "path") {
@@ -307,7 +311,7 @@ export class KonvaBoardRenderer {
     return new Konva.Rect({ x, y, width, height, cornerRadius: radius, stroke: PALETTE.orange, strokeWidth: 2, dash: [8, 6], listening: false });
   }
 
-  private handle(x: number, y: number, boardHandle: "end" | "resize") {
+  private handle(x: number, y: number, boardHandle: "start" | "end" | "resize") {
     return new Konva.Circle({ x, y, radius: 10, fill: PALETTE.orange, stroke: PALETTE.navy, strokeWidth: 3, boardHandle });
   }
 

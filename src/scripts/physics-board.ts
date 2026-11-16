@@ -57,7 +57,7 @@ let simulationLast = 0;
 let simulationSnapshot = "";
 let simulatingFrameId: string | null = null;
 let matterEngine: MatterFrameEngine | null = null;
-let selectedHandle: "end" | "resize" | null = null;
+let selectedHandle: "start" | "end" | "resize" | null = null;
 let forceUnit = 1;
 let spacePressed = false;
 let cameraDrag: { pointerId: number; x: number; y: number } | null = null;
@@ -340,7 +340,7 @@ function handlePointerDown(event: PointerEvent) {
     return;
   }
 
-  if (activeTool === "vector" || activeTool === "rope") {
+  if (activeTool === "vector" || activeTool === "rope" || activeTool === "spring") {
     const body = activeTool === "vector" ? nearestBody(point, frame.id) : undefined;
     if (activeTool === "vector" && !body) {
       pointerStart = null;
@@ -351,7 +351,7 @@ function handlePointerDown(event: PointerEvent) {
     draftObject = {
       id: createId(),
       kind: activeTool,
-      color: activeTool === "vector" ? "#ff401c" : "#639bf2",
+      color: activeTool === "rope" ? "#639bf2" : "#ff401c",
       label: activeTool === "vector" ? activeForce : undefined,
       x1: start.x,
       y1: start.y,
@@ -359,12 +359,13 @@ function handlePointerDown(event: PointerEvent) {
       y2: point.y,
       parentId: body?.id || frame.id,
       force: activeTool === "vector" ? vectorForce(start, point) : undefined,
+      stiffness: activeTool === "spring" ? 20 : undefined,
     };
     renderPreview();
     return;
   }
 
-  if (["block", "ball", "pulley", "text", "surface", "spring"].includes(activeTool)) {
+  if (["block", "ball", "pulley", "text", "surface"].includes(activeTool)) {
     commit(() => {
       if (activeTool === "block") {
         objects.push({ id: createId(), kind: "block", color: "#639bf2", label: "m", x: point.x, y: point.y, w: 170, h: 105, parentId: frame.id, mass: 1, velocity: { x: 0, y: 0 } });
@@ -374,8 +375,6 @@ function handlePointerDown(event: PointerEvent) {
         objects.push({ id: createId(), kind: "pulley", color: "#ff401c", label: "", x: point.x, y: point.y, r: 55, parentId: frame.id });
       } else if (activeTool === "surface") {
         objects.push({ id: createId(), kind: "surface", color: "#ffffff", x: point.x, y: point.y, w: 330, angle: 0, friction: 0, parentId: frame.id });
-      } else if (activeTool === "spring") {
-        objects.push({ id: createId(), kind: "spring", color: "#ff401c", x1: point.x, y1: point.y, x2: point.x + 180, y2: point.y, stiffness: 20, parentId: frame.id });
       } else {
         objects.push({ id: createId(), kind: "text", color: "#ffffff", text: "подпись", x: point.x, y: point.y, parentId: frame.id });
       }
@@ -435,8 +434,12 @@ function handlePointerMove(event: PointerEvent) {
       objects = structuredClone(dragSceneOriginal);
       scene = new PhysicsScene(objects);
       const object = objects.find((item) => item.id === selectedId);
-      if (object && selectedHandle === "end" && object.kind === "vector") {
-        object.x2 = snap(point.x); object.y2 = snap(point.y); object.force = vectorForce({ x: finite(object.x1), y: finite(object.y1) }, { x: finite(object.x2), y: finite(object.y2) });
+      if (object && selectedHandle === "end" && ["vector", "spring"].includes(object.kind)) {
+        object.x2 = snap(point.x); object.y2 = snap(point.y);
+        if (object.kind === "vector") object.force = vectorForce({ x: finite(object.x1), y: finite(object.y1) }, { x: finite(object.x2), y: finite(object.y2) });
+        else object.targetId = undefined;
+      } else if (object && selectedHandle === "start" && object.kind === "spring") {
+        object.x1 = snap(point.x); object.y1 = snap(point.y);
       } else if (object && selectedHandle === "resize" && ["block", "ball", "frame"].includes(object.kind)) {
         resizeObject(object, dragOriginal, point, event.shiftKey);
       } else if (object) {
@@ -458,7 +461,7 @@ function handlePointerMove(event: PointerEvent) {
     return;
   }
 
-  if ((activeTool === "vector" || activeTool === "rope") && draftObject) {
+  if ((activeTool === "vector" || activeTool === "rope" || activeTool === "spring") && draftObject) {
     draftObject.x2 = snap(point.x);
     draftObject.y2 = snap(point.y);
     draftObject.force = draftObject.kind === "vector" ? vectorForce({ x: finite(draftObject.x1), y: finite(draftObject.y1) }, { x: finite(draftObject.x2), y: finite(draftObject.y2) }) : undefined;
@@ -484,11 +487,12 @@ function handlePointerUp(event: PointerEvent) {
       selectedId = [...selectedIds].at(-1) || null;
     }
     selectionBox = null;
-  } else if ((activeTool === "vector" || activeTool === "rope") && draftObject) {
+  } else if ((activeTool === "vector" || activeTool === "rope" || activeTool === "spring") && draftObject) {
     draftObject.x2 = point.x;
     draftObject.y2 = point.y;
     const length = Math.hypot((draftObject.x2 || 0) - (draftObject.x1 || 0), (draftObject.y2 || 0) - (draftObject.y1 || 0));
     if (length > 12) {
+      if (draftObject.kind === "spring") attachSpringToNearestBody(draftObject, point);
       pushHistory();
       objects.push(draftObject);
       selectedId = draftObject.id;
@@ -501,6 +505,8 @@ function handlePointerUp(event: PointerEvent) {
     draftObject = null;
     saveAndSync();
   } else if (activeTool === "select" && dragMoved) {
+    const selected = scene.get(selectedId);
+    if (selected?.kind === "spring" && selectedHandle === "end") attachSpringToNearestBody(selected, point);
     saveAndSync();
   }
 
@@ -534,6 +540,12 @@ function anchorForces() {
     if (!scene.isBody(body)) continue;
     force.x1 = finite(body.x);
     force.y1 = finite(body.y);
+  }
+  for (const spring of objects.filter((object) => object.kind === "spring" && object.targetId)) {
+    const body = scene.get(spring.targetId);
+    if (!scene.isBody(body)) { spring.targetId = undefined; continue; }
+    spring.x2 = finite(body.x);
+    spring.y2 = finite(body.y);
   }
 }
 
@@ -750,7 +762,7 @@ function inspectorFields(object: BoardObject) {
   const fields: [string, string, number, number, number][] = [];
   if (["block", "ball"].includes(object.kind)) fields.push(["Масса, кг", "mass", finite(object.mass, 1), 0.1, 100]);
   if (object.kind === "surface") fields.push(["Трение μ", "friction", finite(object.friction), 0, 2], ["Угол, °", "angle", finite(object.angle), -75, 75]);
-  if (object.kind === "spring") fields.push(["Жёсткость k, Н/м", "stiffness", finite(object.stiffness, 20), 1, 300]);
+  if (object.kind === "spring") fields.push(["Жёсткость k, Н/м", "stiffness", finite(object.stiffness, 20), 1, 300], ["Длина покоя, px", "restLength", finite(object.restLength, Math.hypot(finite(object.x2) - finite(object.x1), finite(object.y2) - finite(object.y1))), 1, 1000]);
   if (object.kind === "container") fields.push(["Температура, °C", "temperature", finite(object.temperature, 20), -50, 200]);
   if (object.kind === "atom") fields.push(["Протоны", "protons", finite(object.protons, 1), 1, 118], ["Нейтроны", "neutrons", finite(object.neutrons, 0), 0, 180], ["Электроны", "electrons", finite(object.electrons, 1), 0, 118]);
   return fields.map(([label, property, value, min, max]) => `<label class="property-field"><span>${label}</span><input data-property="${property}" type="number" step="${property === "friction" ? "0.05" : "1"}" min="${min}" max="${max}" value="${value}" /></label>`).join("");
@@ -852,14 +864,24 @@ function toBoardPoint(event: PointerEvent | WheelEvent): Point {
   return renderer.toWorldPoint(event.clientX, event.clientY);
 }
 
-function nearestBody(point: Point, frameId: string) {
-  let best: BoardObject | undefined; let distance = 95;
+function nearestBody(point: Point, frameId: string, maxDistance = 95) {
+  let best: BoardObject | undefined; let distance = maxDistance;
   for (const object of objects) {
     if (!["block", "ball"].includes(object.kind) || object.parentId !== frameId) continue;
     const next = Math.hypot(finite(object.x) - point.x, finite(object.y) - point.y);
     if (next < distance) { best = object; distance = next; }
   }
   return best;
+}
+
+function attachSpringToNearestBody(spring: BoardObject, point: Point) {
+  const body = nearestBody(point, spring.parentId || "", 120);
+  spring.targetId = body?.id;
+  if (body) {
+    spring.x2 = finite(body.x);
+    spring.y2 = finite(body.y);
+  }
+  spring.restLength = Math.max(1, Math.hypot(finite(spring.x2) - finite(spring.x1), finite(spring.y2) - finite(spring.y1)));
 }
 
 function toggleSimulation(frameId = selectedFrame()?.id) {
@@ -991,7 +1013,8 @@ function normalizeObjects(value: unknown): BoardObject[] {
       x: numberOrUndefined(source.x), y: numberOrUndefined(source.y), w: numberOrUndefined(source.w), h: numberOrUndefined(source.h), r: numberOrUndefined(source.r),
       x1: numberOrUndefined(source.x1), y1: numberOrUndefined(source.y1), x2: numberOrUndefined(source.x2), y2: numberOrUndefined(source.y2),
       parentId: typeof source.parentId === "string" ? source.parentId.slice(0, 64) : undefined,
-      force: numberOrUndefined(source.force), mass: numberOrUndefined(source.mass), friction: numberOrUndefined(source.friction), angle: numberOrUndefined(source.angle), stiffness: numberOrUndefined(source.stiffness), temperature: numberOrUndefined(source.temperature), protons: numberOrUndefined(source.protons), neutrons: numberOrUndefined(source.neutrons), electrons: numberOrUndefined(source.electrons),
+      force: numberOrUndefined(source.force), mass: numberOrUndefined(source.mass), friction: numberOrUndefined(source.friction), angle: numberOrUndefined(source.angle), stiffness: numberOrUndefined(source.stiffness), restLength: numberOrUndefined(source.restLength), temperature: numberOrUndefined(source.temperature), protons: numberOrUndefined(source.protons), neutrons: numberOrUndefined(source.neutrons), electrons: numberOrUndefined(source.electrons),
+      targetId: typeof source.targetId === "string" ? source.targetId.slice(0, 64) : undefined,
     };
     if (source.velocity && typeof source.velocity === "object") {
       const velocity = source.velocity as Record<string, unknown>;
