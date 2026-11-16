@@ -97,6 +97,8 @@
   font-size: 1.2rem;
 }
 
+.mobile-clear-button { display: none; }
+
 .icon-button:hover,
 .zoom-controls button:hover {
   border-color: var(--board-line);
@@ -426,6 +428,9 @@
   cursor: default;
 }
 
+.physics-canvas[data-tool="pan"] { cursor: grab; }
+.physics-canvas[data-tool="pan"]:active { cursor: grabbing; }
+
 .canvas-background {
   fill: var(--board-surface);
 }
@@ -463,6 +468,12 @@
 .frame-label { fill: var(--light-blue); font-family: "Rubik", sans-serif; font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
 .resize-handle, .vector-handle { fill: var(--orange); stroke: var(--navy); stroke-width: 3; cursor: nwse-resize; }
 .vector-handle { cursor: crosshair; }
+.selection-marquee { fill: rgb(99 155 242 / 12%); stroke: var(--light-blue); stroke-width: 2; stroke-dasharray: 7 5; vector-effect: non-scaling-stroke; pointer-events: none; }
+.frame-simulation-button { cursor: pointer; }
+.frame-simulation-button rect { fill: var(--navy); stroke: var(--light-blue); stroke-width: 2; }
+.frame-simulation-button text { fill: var(--light-blue); font-family: "Rubik", sans-serif; font-size: 16px; text-anchor: middle; pointer-events: none; }
+.frame-simulation-button.is-running rect { stroke: var(--orange); }
+.frame-simulation-button.is-running text { fill: var(--orange); }
 
 .selection-ring {
   display: none;
@@ -830,6 +841,8 @@
   .connection-pill {
     display: none;
   }
+
+  .mobile-clear-button { display: grid; }
 
   .tool-rail {
     position: fixed;

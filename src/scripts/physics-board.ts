@@ -1,42 +1,11 @@
-type Point = { x: number; y: number };
-type ObjectKind = "frame" | "block" | "ball" | "pulley" | "vector" | "rope" | "path" | "formula" | "text" | "surface" | "spring" | "dipole" | "atom" | "orbit" | "container";
-
-type BoardObject = {
-  id: string;
-  kind: ObjectKind;
-  color: string;
-  label?: string;
-  x?: number;
-  y?: number;
-  w?: number;
-  h?: number;
-  r?: number;
-  x1?: number;
-  y1?: number;
-  x2?: number;
-  y2?: number;
-  points?: Point[];
-  text?: string;
-  parentId?: string;
-  force?: number;
-  mass?: number;
-  friction?: number;
-  angle?: number;
-  stiffness?: number;
-  temperature?: number;
-  velocity?: Point;
-  protons?: number;
-  neutrons?: number;
-  electrons?: number;
-};
+import { KonvaBoardRenderer } from "./physics/konva-board-renderer";
+import { MatterFrameEngine } from "./physics/matter-frame-engine";
+import { PhysicsScene, type BoardObject, type Bounds, type ObjectKind, type Point } from "./physics/model";
 
 const app = document.querySelector<HTMLElement>("[data-board-app]")!;
-const svg = document.querySelector<SVGSVGElement>("[data-physics-canvas]")!;
-const boardLayer = document.querySelector<SVGGElement>("[data-board-layer]")!;
-const previewLayer = document.querySelector<SVGGElement>("[data-preview-layer]")!;
-const cursorLayer = document.querySelector<SVGGElement>("[data-cursor-layer]")!;
+const canvas = document.querySelector<HTMLDivElement>("[data-physics-canvas]")!;
 
-if (!app || !svg || !boardLayer || !previewLayer || !cursorLayer) {
+if (!app || !canvas) {
   throw new Error("Physics board root is missing");
 }
 
@@ -65,26 +34,37 @@ const STORAGE_KEY = "physics-board-v1";
 const params = new URLSearchParams(window.location.search);
 
 let objects: BoardObject[] = loadBoard();
+let scene = new PhysicsScene(objects);
 let selectedId: string | null = null;
+let selectedIds = new Set<string>();
 let activeTool = "select";
 let activeForce = "Fтяж";
 let pointerStart: Point | null = null;
 let draftObject: BoardObject | null = null;
 let dragOriginal: BoardObject | null = null;
+let dragSceneOriginal: BoardObject[] | null = null;
 let dragMoved = false;
+let selectionBox: { start: Point; end: Point } | null = null;
 let undoStack: string[] = [];
 let future: string[] = [];
 let toastTimer = 0;
 let remoteCursor: Point | null = null;
 let lastCursorSent = 0;
-let viewBox = { x: 0, y: 0, width: 1600, height: 900 };
 let sharedPointer: Point | null = null;
 let simulating = false;
 let simulationFrame = 0;
 let simulationLast = 0;
 let simulationSnapshot = "";
+let simulatingFrameId: string | null = null;
+let matterEngine: MatterFrameEngine | null = null;
 let selectedHandle: "end" | "resize" | null = null;
 let forceUnit = 1;
+let spacePressed = false;
+let cameraDrag: { pointerId: number; x: number; y: number } | null = null;
+const touchPoints = new Map<number, { x: number; y: number }>();
+let pinchDistance = 0;
+let pinchCenter: Point | null = null;
+const renderer = new KonvaBoardRenderer(canvas);
 
 const TASKS = [
   { id: "oge-03", title: "ОГЭ №3 · Невесомость", topic: "Механика", text: "Пакет с водой падает: какие силы действуют на воду?" },
@@ -128,18 +108,22 @@ document.querySelectorAll<HTMLButtonElement>("[data-force]").forEach((button) =>
 
 document.querySelectorAll<HTMLButtonElement>("[data-formula]").forEach((button, index) => {
   button.addEventListener("click", () => {
+    const frame = selectedFrame() || objects.find((object) => object.kind === "frame");
+    if (!frame) { showToast("Сначала создайте физический фрейм"); return; }
     const text = button.dataset.formula || "F = ma";
     commit(() => {
       objects.push({
         id: createId(),
         kind: "formula",
-        x: 690 + (index % 2) * 80,
-        y: 260 + (index % 4) * 70,
+        x: finite(frame.x) + (index % 2) * 80,
+        y: finite(frame.y) - 120 + (index % 4) * 70,
         color: index % 2 ? "#639bf2" : "#ff401c",
         text,
+        parentId: frame.id,
       });
     });
     selectedId = objects.at(-1)?.id || null;
+    selectedIds = new Set(selectedId ? [selectedId] : []);
     setTool("select");
     render();
   });
@@ -151,16 +135,16 @@ document.querySelectorAll<HTMLButtonElement>("[data-action]").forEach((button) =
     if (action === "undo") undo();
     if (action === "redo") redo();
     if (action === "delete") removeSelected();
+    if (action === "clear") clearBoard();
   });
 });
 
 document.querySelectorAll<HTMLButtonElement>("[data-object-color]").forEach((button) => {
   button.addEventListener("click", () => {
-    if (!selectedId) return;
+    if (!selectedIds.size) return;
     const color = button.dataset.objectColor || "#ff401c";
     commit(() => {
-      const object = objects.find((item) => item.id === selectedId);
-      if (object) object.color = safeColor(color);
+      objects.filter((item) => selectedIds.has(item.id)).forEach((object) => object.color = safeColor(color));
     });
   });
 });
@@ -201,20 +185,26 @@ document.querySelectorAll<HTMLButtonElement>("[data-simulation]").forEach((butto
   });
 });
 
-svg.addEventListener("pointerdown", handlePointerDown);
-svg.addEventListener("pointermove", handlePointerMove);
-svg.addEventListener("pointerup", handlePointerUp);
-svg.addEventListener("pointercancel", handlePointerUp);
-svg.addEventListener("wheel", handleWheel, { passive: false });
+canvas.addEventListener("pointerdown", handlePointerDown);
+canvas.addEventListener("pointermove", handlePointerMove);
+canvas.addEventListener("pointerup", handlePointerUp);
+canvas.addEventListener("pointercancel", handlePointerUp);
+canvas.addEventListener("wheel", (event) => {
+  event.preventDefault();
+  renderer.zoomAt(Math.exp(-event.deltaY * .0015), event.clientX, event.clientY);
+  updateZoom();
+}, { passive: false });
 
 document.querySelectorAll<HTMLButtonElement>("[data-zoom]").forEach((button) => {
   button.addEventListener("click", () => {
     const action = button.dataset.zoom;
-    if (action === "fit") viewBox = { x: 0, y: 0, width: 1600, height: 900 };
-    else zoomAt({ x: viewBox.x + viewBox.width / 2, y: viewBox.y + viewBox.height / 2 }, action === "in" ? 0.82 : 1.22);
+    if (action === "fit") renderer.resetCamera();
+    else renderer.zoomAt(action === "in" ? 1.22 : 0.82);
     updateZoom();
   });
 });
+
+document.querySelector<HTMLButtonElement>("[data-theme-toggle]")?.addEventListener("click", () => queueMicrotask(render));
 
 document.addEventListener("keydown", (event) => {
   const target = event.target as HTMLElement;
@@ -225,12 +215,25 @@ document.addEventListener("keydown", (event) => {
     event.shiftKey ? redo() : undo();
     return;
   }
+  if ((event.metaKey || event.ctrlKey) && key === "a") {
+    event.preventDefault();
+    selectedIds = new Set(objects.filter((object) => object.kind !== "frame").map((object) => object.id));
+    selectedId = [...selectedIds].at(-1) || null;
+    render();
+    return;
+  }
+  if (event.code === "Space") { event.preventDefault(); spacePressed = true; }
   if (event.key === "Delete" || event.key === "Backspace") removeSelected();
   if (key === "v") setTool("select");
+  if (key === "h") setTool("pan");
   if (key === "p") setTool("pen");
   if (key === "f") setTool("vector");
   if (key === "r") setTool("rope");
   if (key === "t") setTool("text");
+});
+
+document.addEventListener("keyup", (event) => {
+  if (event.code === "Space") spacePressed = false;
 });
 
 document.querySelector("[data-open-collaboration]")?.addEventListener("click", () => dialog?.showModal());
@@ -249,19 +252,57 @@ document.querySelector("[data-connect-room]")?.addEventListener("click", () => {
 document.querySelector("[data-copy-link]")?.addEventListener("click", copyShareLink);
 
 function handlePointerDown(event: PointerEvent) {
+  if (event.pointerType === "touch") {
+    touchPoints.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (touchPoints.size === 2) {
+      const [a, b] = [...touchPoints.values()];
+      pinchDistance = Math.hypot(b.x - a.x, b.y - a.y);
+      pinchCenter = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      pointerStart = null;
+      selectionBox = null;
+      draftObject = null;
+      render();
+      return;
+    }
+  }
+  if (activeTool === "pan" || spacePressed || event.button === 1) {
+    cameraDrag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    canvas.setPointerCapture(event.pointerId);
+    return;
+  }
   if (event.button !== 0) return;
   const point = toBoardPoint(event);
   pointerStart = point;
-  svg.setPointerCapture(event.pointerId);
+  canvas.setPointerCapture(event.pointerId);
 
-  const target = (event.target as Element).closest<SVGGElement>("[data-object-id]");
-  const targetId = target?.dataset.objectId || null;
-  const handle = (event.target as Element).closest<SVGElement>("[data-handle]")?.dataset.handle as "end" | "resize" | undefined;
+  const hit = renderer.hitAt(event.clientX, event.clientY);
+  const targetId = hit.objectId;
+  const frameAction = hit.frameSimulate;
+  const handle = hit.handle || undefined;
+
+  if (frameAction) {
+    selectedId = frameAction;
+    selectedIds = new Set([frameAction]);
+    toggleSimulation(frameAction);
+    pointerStart = null;
+    return;
+  }
 
   if (activeTool === "select") {
-    selectedId = targetId;
+    if (event.shiftKey && targetId) {
+      if (selectedIds.has(targetId)) selectedIds.delete(targetId);
+      else selectedIds.add(targetId);
+      selectedId = selectedIds.has(targetId) ? targetId : [...selectedIds].at(-1) || null;
+    } else if (targetId && selectedIds.has(targetId)) {
+      selectedId = targetId;
+    } else {
+      selectedIds = new Set(targetId ? [targetId] : []);
+      selectedId = targetId;
+    }
     selectedHandle = handle || null;
     dragOriginal = targetId ? structuredClone(objects.find((item) => item.id === targetId) || null) : null;
+    dragSceneOriginal = structuredClone(objects);
+    if (!targetId) selectionBox = { start: point, end: point };
     dragMoved = false;
     render();
     return;
@@ -277,6 +318,7 @@ function handlePointerDown(event: PointerEvent) {
   if (activeTool === "frame") {
     commit(() => objects.push({ id: createId(), kind: "frame", color: "#639bf2", label: "Физическая модель", x: point.x, y: point.y, w: 720, h: 460 }));
     selectedId = objects.at(-1)?.id || null;
+    selectedIds = new Set(selectedId ? [selectedId] : []);
     setTool("select");
     render();
     return;
@@ -290,25 +332,32 @@ function handlePointerDown(event: PointerEvent) {
 
   if (activeTool === "pen") {
     pushHistory();
-    draftObject = { id: createId(), kind: "path", color: "#ffffff", points: [point] };
+    draftObject = { id: createId(), kind: "path", color: "#ffffff", points: [point], parentId: frame.id };
     objects.push(draftObject);
     selectedId = draftObject.id;
+    selectedIds = new Set([draftObject.id]);
     render();
     return;
   }
 
   if (activeTool === "vector" || activeTool === "rope") {
-    const start = activeTool === "vector" ? snapToBody(point) : point;
+    const body = activeTool === "vector" ? nearestBody(point, frame.id) : undefined;
+    if (activeTool === "vector" && !body) {
+      pointerStart = null;
+      showToast("Сила должна начинаться на теле внутри фрейма");
+      return;
+    }
+    const start = body ? { x: finite(body.x), y: finite(body.y) } : point;
     draftObject = {
       id: createId(),
       kind: activeTool,
-      color: "#639bf2",
+      color: activeTool === "vector" ? "#ff401c" : "#639bf2",
       label: activeTool === "vector" ? activeForce : undefined,
       x1: start.x,
       y1: start.y,
       x2: point.x,
       y2: point.y,
-      parentId: activeTool === "vector" ? nearestBody(start)?.id || frame.id : frame.id,
+      parentId: body?.id || frame.id,
       force: activeTool === "vector" ? vectorForce(start, point) : undefined,
     };
     renderPreview();
@@ -332,12 +381,34 @@ function handlePointerDown(event: PointerEvent) {
       }
     });
     selectedId = objects.at(-1)?.id || null;
+    selectedIds = new Set(selectedId ? [selectedId] : []);
     setTool("select");
     render();
   }
 }
 
 function handlePointerMove(event: PointerEvent) {
+  if (event.pointerType === "touch" && touchPoints.has(event.pointerId)) {
+    touchPoints.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (touchPoints.size >= 2) {
+      const [a, b] = [...touchPoints.values()];
+      const distance = Math.hypot(b.x - a.x, b.y - a.y);
+      const center = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      if (pinchCenter) renderer.panBy(center.x - pinchCenter.x, center.y - pinchCenter.y);
+      if (pinchDistance > 0) renderer.zoomAt(distance / pinchDistance, center.x, center.y);
+      pinchDistance = distance;
+      pinchCenter = center;
+      updateZoom();
+      return;
+    }
+  }
+  if (cameraDrag?.pointerId === event.pointerId) {
+    renderer.panBy(event.clientX - cameraDrag.x, event.clientY - cameraDrag.y);
+    cameraDrag.x = event.clientX;
+    cameraDrag.y = event.clientY;
+    updateZoom();
+    return;
+  }
   const point = toBoardPoint(event);
   sendCursor(point);
   if (activeTool === "pointer" && pointerStart) {
@@ -347,7 +418,13 @@ function handlePointerMove(event: PointerEvent) {
   }
   if (!pointerStart) return;
 
-  if (activeTool === "select" && selectedId && dragOriginal) {
+  if (activeTool === "select" && selectionBox && !selectedId) {
+    selectionBox.end = point;
+    renderSelectionBox();
+    return;
+  }
+
+  if (activeTool === "select" && selectedId && dragOriginal && dragSceneOriginal) {
     const dx = point.x - pointerStart.x;
     const dy = point.y - pointerStart.y;
     if (!dragMoved && Math.hypot(dx, dy) > 2) {
@@ -355,12 +432,17 @@ function handlePointerMove(event: PointerEvent) {
       dragMoved = true;
     }
     if (dragMoved) {
+      objects = structuredClone(dragSceneOriginal);
+      scene = new PhysicsScene(objects);
       const object = objects.find((item) => item.id === selectedId);
       if (object && selectedHandle === "end" && object.kind === "vector") {
         object.x2 = snap(point.x); object.y2 = snap(point.y); object.force = vectorForce({ x: finite(object.x1), y: finite(object.y1) }, { x: finite(object.x2), y: finite(object.y2) });
       } else if (object && selectedHandle === "resize" && ["block", "ball", "frame"].includes(object.kind)) {
         resizeObject(object, dragOriginal, point, event.shiftKey);
-      } else if (object) moveObjectFrom(object, dragOriginal, dx, dy);
+      } else if (object) {
+        scene.translate(topLevelSelection(), dx, dy);
+        constrainSelectedEntities();
+      }
       render();
       sendBoardState();
     }
@@ -385,10 +467,24 @@ function handlePointerMove(event: PointerEvent) {
 }
 
 function handlePointerUp(event: PointerEvent) {
+  touchPoints.delete(event.pointerId);
+  if (touchPoints.size < 2) { pinchDistance = 0; pinchCenter = null; }
+  if (cameraDrag?.pointerId === event.pointerId) {
+    cameraDrag = null;
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    return;
+  }
   if (!pointerStart) return;
   const point = toBoardPoint(event);
 
-  if ((activeTool === "vector" || activeTool === "rope") && draftObject) {
+  if (activeTool === "select" && selectionBox && !selectedId) {
+    const bounds = normalizedBounds(selectionBox.start, selectionBox.end);
+    if (Math.hypot(selectionBox.end.x - selectionBox.start.x, selectionBox.end.y - selectionBox.start.y) > 8) {
+      selectedIds = new Set(scene.inside(bounds).map((object) => object.id));
+      selectedId = [...selectedIds].at(-1) || null;
+    }
+    selectionBox = null;
+  } else if ((activeTool === "vector" || activeTool === "rope") && draftObject) {
     draftObject.x2 = point.x;
     draftObject.y2 = point.y;
     const length = Math.hypot((draftObject.x2 || 0) - (draftObject.x1 || 0), (draftObject.y2 || 0) - (draftObject.y1 || 0));
@@ -396,10 +492,10 @@ function handlePointerUp(event: PointerEvent) {
       pushHistory();
       objects.push(draftObject);
       selectedId = draftObject.id;
+      selectedIds = new Set([draftObject.id]);
       saveAndSync();
     }
     draftObject = null;
-    previewLayer.innerHTML = "";
     setTool("select");
   } else if (activeTool === "pen" && draftObject) {
     draftObject = null;
@@ -411,24 +507,90 @@ function handlePointerUp(event: PointerEvent) {
   pointerStart = null;
   selectedHandle = null;
   dragOriginal = null;
+  dragSceneOriginal = null;
   dragMoved = false;
   render();
-  if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId);
+  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
 }
 
 function render() {
-  boardLayer.innerHTML = objects.map((object) => renderObject(object)).join("");
-  svg.dataset.tool = activeTool;
+  anchorForces();
+  renderer.render({
+    objects,
+    selectedIds,
+    draftObject,
+    selectionBox,
+    localCursor: activeTool === "pointer" ? sharedPointer : null,
+    remoteCursor,
+    simulatingFrameId: simulating ? simulatingFrameId : null,
+  });
+  renderer.setTool(activeTool);
   updateInspector();
-  renderPointer();
+}
+
+function anchorForces() {
+  for (const force of objects.filter((object) => object.kind === "vector")) {
+    const body = scene.get(force.parentId);
+    if (!scene.isBody(body)) continue;
+    force.x1 = finite(body.x);
+    force.y1 = finite(body.y);
+  }
+}
+
+function renderSelectionBox() {
+  render();
+}
+
+function normalizedBounds(a: Point, b: Point): Bounds {
+  return { left: Math.min(a.x, b.x), top: Math.min(a.y, b.y), right: Math.max(a.x, b.x), bottom: Math.max(a.y, b.y) };
+}
+
+function topLevelSelection() {
+  return [...selectedIds].filter((id) => {
+    const object = scene.get(id);
+    if (!object?.parentId) return true;
+    return !selectedIds.has(object.parentId) && ![...selectedIds].some((selected) => scene.get(selected)?.kind === "frame" && scene.belongsToFrame(object, selected));
+  });
+}
+
+function constrainSelectedEntities() {
+  for (const id of topLevelSelection()) {
+    const object = scene.get(id);
+    const frame = scene.frameOf(object);
+    if (!object || !frame || object.kind === "frame") continue;
+    const frameBounds = scene.entity(frame).bounds();
+    const entity = scene.entity(object);
+    if (object.kind === "vector") {
+      object.x2 = clamp(finite(object.x2), frameBounds.left + 12, frameBounds.right - 12);
+      object.y2 = clamp(finite(object.y2), frameBounds.top + 54, frameBounds.bottom - 12);
+      continue;
+    }
+    const bounds = entity.bounds();
+    let dx = 0, dy = 0;
+    if (bounds.left < frameBounds.left) dx = frameBounds.left - bounds.left;
+    if (bounds.right > frameBounds.right) dx = frameBounds.right - bounds.right;
+    if (bounds.top < frameBounds.top + 48) dy = frameBounds.top + 48 - bounds.top;
+    if (bounds.bottom > frameBounds.bottom) dy = frameBounds.bottom - bounds.bottom;
+    if (dx || dy) {
+      entity.translate(dx, dy);
+      if (["block", "ball"].includes(object.kind)) for (const force of scene.forcesFor(object.id)) scene.entity(force).translate(dx, dy);
+    }
+    if (["block", "ball"].includes(object.kind)) {
+      const before = { x: finite(object.x), y: finite(object.y) };
+      const next = snapBodyToSurface(object, before);
+      const snapDx = next.x - before.x, snapDy = next.y - before.y;
+      object.x = next.x; object.y = next.y;
+      for (const force of scene.forcesFor(object.id)) scene.entity(force).translate(snapDx, snapDy);
+    }
+  }
 }
 
 function renderPreview() {
-  previewLayer.innerHTML = draftObject ? renderObject(draftObject, true) : "";
+  render();
 }
 
 function renderObject(object: BoardObject, preview = false) {
-  const selected = object.id === selectedId && !preview ? " is-selected" : "";
+  const selected = selectedIds.has(object.id) && !preview ? " is-selected" : "";
   const color = safeColor(object.color);
   const label = escapeHtml(object.label || "");
   const text = escapeHtml(object.text || "");
@@ -436,7 +598,8 @@ function renderObject(object: BoardObject, preview = false) {
 
   if (object.kind === "frame") {
     const x = finite(object.x), y = finite(object.y), w = finite(object.w, 720), h = finite(object.h, 460);
-    return `${groupStart}<rect class="physics-frame" x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="18"></rect><text class="frame-label" x="${x - w / 2 + 24}" y="${y - h / 2 + 38}">${label || "Физическая модель"}</text><rect class="selection-ring" x="${x - w / 2 - 8}" y="${y - h / 2 - 8}" width="${w + 16}" height="${h + 16}" rx="22"></rect>${selected ? `<circle class="resize-handle" data-handle="resize" cx="${x + w / 2}" cy="${y + h / 2}" r="10"></circle>` : ""}</g>`;
+    const running = simulatingFrameId === object.id && simulating;
+    return `${groupStart}<rect class="physics-frame" x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="18"></rect><text class="frame-label" x="${x - w / 2 + 24}" y="${y - h / 2 + 38}">${label || "Физическая модель"}</text><g class="frame-simulation-button${running ? " is-running" : ""}" data-frame-simulate="${object.id}" transform="translate(${x + w / 2 - 54} ${y - h / 2 + 14})"><rect width="40" height="30" rx="7"></rect><text x="20" y="21">${running ? "Ⅱ" : "▶"}</text></g><rect class="selection-ring" x="${x - w / 2 - 8}" y="${y - h / 2 - 8}" width="${w + 16}" height="${h + 16}" rx="22"></rect>${selected ? `<circle class="resize-handle" data-handle="resize" cx="${x + w / 2}" cy="${y + h / 2}" r="10"></circle>` : ""}</g>`;
   }
 
   if (object.kind === "block") {
@@ -491,10 +654,14 @@ function renderObject(object: BoardObject, preview = false) {
 
 function updateInspector() {
   const selected = objects.find((item) => item.id === selectedId);
-  if (selectionEmpty) selectionEmpty.hidden = Boolean(selected);
-  if (selectionFields) selectionFields.hidden = !selected;
+  const multiple = selectedIds.size > 1;
+  if (selectionEmpty) {
+    selectionEmpty.hidden = Boolean(selected) && !multiple;
+    selectionEmpty.textContent = multiple ? `Выбрано объектов: ${selectedIds.size}. Перетащите любой из них, чтобы переместить группу.` : "Выберите объект, чтобы изменить подпись и цвет.";
+  }
+  if (selectionFields) selectionFields.hidden = !selected || multiple;
   if (labelInput && selected) labelInput.value = selected.kind === "formula" || selected.kind === "text" ? selected.text || "" : selected.label || "";
-  if (properties) properties.innerHTML = selected ? inspectorFields(selected) : "";
+  if (properties) properties.innerHTML = selected && !multiple ? inspectorFields(selected) : "";
   properties?.querySelectorAll<HTMLInputElement>("[data-property]").forEach((input) => input.addEventListener("change", () => {
     if (!selectedId) return;
     commit(() => {
@@ -505,17 +672,25 @@ function updateInspector() {
       if (Number.isFinite(number)) (object as Record<string, unknown>)[property] = number;
     });
   }));
+  const frame = selectedFrame();
+  if (simulationState) simulationState.textContent = simulatingFrameId === frame?.id && simulating ? "идёт" : frame ? "готов" : "выберите фрейм";
+  setSimulationButtonText(simulatingFrameId === frame?.id && simulating ? "❚❚ Пауза" : "▷ Запустить выбранный");
+}
+
+function selectedFrame() {
+  return scene.frameOf(scene.get(selectedId));
 }
 
 function setTool(tool: string) {
   activeTool = tool;
   toolButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.tool === tool));
-  svg.dataset.tool = tool;
+  renderer.setTool(tool);
 }
 
 function commit(change: () => void) {
   pushHistory();
   change();
+  scene = new PhysicsScene(objects);
   saveAndSync();
   render();
 }
@@ -531,7 +706,9 @@ function undo() {
   if (!state) return;
   future.push(JSON.stringify(objects));
   objects = normalizeObjects(JSON.parse(state));
+  scene = new PhysicsScene(objects);
   selectedId = null;
+  selectedIds.clear();
   saveAndSync();
   render();
 }
@@ -541,63 +718,31 @@ function redo() {
   if (!state) return;
   undoStack.push(JSON.stringify(objects));
   objects = normalizeObjects(JSON.parse(state));
+  scene = new PhysicsScene(objects);
   selectedId = null;
+  selectedIds.clear();
   saveAndSync();
   render();
 }
 
 function removeSelected() {
-  if (!selectedId) return;
+  if (!selectedIds.size) return;
   commit(() => {
-    objects = objects.filter((item) => item.id !== selectedId);
+    objects = scene.remove(selectedIds);
     selectedId = null;
+    selectedIds.clear();
   });
 }
 
-function moveObjectFrom(object: BoardObject, original: BoardObject, dx: number, dy: number) {
-  if (["frame", "block", "ball", "pulley", "formula", "text", "surface", "dipole", "atom", "orbit", "container"].includes(object.kind)) {
-    const next = object.kind === "block" || object.kind === "ball" ? snapBodyToSurface(object, keepInFrame(object, { x: finite(original.x) + dx, y: finite(original.y) + dy })) : keepInFrame(object, { x: finite(original.x) + dx, y: finite(original.y) + dy });
-    object.x = next.x; object.y = next.y;
-    if (object.kind === "frame") moveFrameContents(object.id, next.x - finite(original.x), next.y - finite(original.y));
-    if (["block", "ball", "pulley"].includes(object.kind)) {
-      const actualDx = next.x - finite(original.x), actualDy = next.y - finite(original.y);
-      objects.filter((item) => item.kind === "vector" && item.parentId === object.id).forEach((vector) => {
-        vector.x1 = finite(vector.x1) + actualDx; vector.y1 = finite(vector.y1) + actualDy; vector.x2 = finite(vector.x2) + actualDx; vector.y2 = finite(vector.y2) + actualDy;
-      });
-    }
-  } else if (["vector", "rope"].includes(object.kind)) {
-    object.x1 = finite(original.x1) + dx;
-    object.y1 = finite(original.y1) + dy;
-    object.x2 = finite(original.x2) + dx;
-    object.y2 = finite(original.y2) + dy;
-  } else if (object.kind === "path") {
-    object.points = (original.points || []).map((point) => ({ x: point.x + dx, y: point.y + dy }));
-  }
-}
-
-function moveFrameContents(frameId: string, dx: number, dy: number) {
-  for (const child of objects) {
-    if (child.id === frameId || !belongsToFrame(child, frameId)) continue;
-    if (["vector", "rope", "spring"].includes(child.kind)) {
-      child.x1 = finite(child.x1) + dx; child.y1 = finite(child.y1) + dy;
-      child.x2 = finite(child.x2) + dx; child.y2 = finite(child.y2) + dy;
-    } else if (child.kind === "path") {
-      child.points = (child.points || []).map((point) => ({ x: point.x + dx, y: point.y + dy }));
-    } else {
-      child.x = finite(child.x) + dx; child.y = finite(child.y) + dy;
-    }
-  }
-}
-
-function belongsToFrame(object: BoardObject, frameId: string) {
-  let parentId = object.parentId;
-  const seen = new Set<string>();
-  while (parentId && !seen.has(parentId)) {
-    if (parentId === frameId) return true;
-    seen.add(parentId);
-    parentId = objects.find((item) => item.id === parentId)?.parentId;
-  }
-  return false;
+function clearBoard() {
+  if (!objects.length) return;
+  commit(() => {
+    objects = [];
+    selectedId = null;
+    selectedIds.clear();
+    stopSimulation(false);
+  });
+  showToast("Доска очищена. Отменить можно через Ctrl/⌘ + Z");
 }
 
 function inspectorFields(object: BoardObject) {
@@ -622,13 +767,6 @@ function resizeObject(object: BoardObject, original: BoardObject, point: Point, 
 
 function frameAt(point: Point) {
   return objects.find((object) => object.kind === "frame" && Math.abs(point.x - finite(object.x)) < finite(object.w, 720) / 2 && Math.abs(point.y - finite(object.y)) < finite(object.h, 460) / 2);
-}
-
-function keepInFrame(object: BoardObject, point: Point) {
-  const frame = objects.find((item) => item.id === object.parentId && item.kind === "frame");
-  if (!frame) return point;
-  const padding = object.kind === "ball" ? finite(object.r, 58) : Math.max(finite(object.w, 100), finite(object.h, 80)) / 2;
-  return { x: clamp(point.x, finite(frame.x) - finite(frame.w, 720) / 2 + padding, finite(frame.x) + finite(frame.w, 720) / 2 - padding), y: clamp(point.y, finite(frame.y) - finite(frame.h, 460) / 2 + padding, finite(frame.y) + finite(frame.h, 460) / 2 - padding) };
 }
 
 function snapBodyToSurface(body: BoardObject, point: Point) {
@@ -663,12 +801,11 @@ function renderContainer(object: BoardObject, groupStart: string) {
 }
 
 function renderPointer() {
-  const local = activeTool === "pointer" && sharedPointer ? `<g class="shared-pointer" transform="translate(${sharedPointer.x} ${sharedPointer.y})"><path d="M0 0L5 26L12 17L22 16Z"></path><text x="20" y="34">указка</text></g>` : "";
-  cursorLayer.innerHTML = `${local}${remoteCursor ? `<g class="remote-cursor" transform="translate(${remoteCursor.x} ${remoteCursor.y})"><path d="M0 0L4 22L10 15L18 14Z"></path><text x="16" y="30">ученик</text></g>` : ""}`;
+  render();
 }
 
 function insertTemplate(template: string) {
-  const frame = objects.find((item) => item.kind === "frame");
+  const frame = selectedFrame() || objects.find((item) => item.kind === "frame");
   if (!frame) { showToast("Создайте физический фрейм, затем добавьте схему"); return; }
   const x = finite(frame.x), y = finite(frame.y);
   const presets: Record<string, Partial<BoardObject>[]> = {
@@ -683,6 +820,7 @@ function insertTemplate(template: string) {
   };
   commit(() => (presets[template] || []).forEach((preset) => objects.push({ id: createId(), color: "#ffffff", parentId: frame.id, ...preset } as BoardObject)));
   selectedId = objects.at(-1)?.id || null;
+  selectedIds = new Set(selectedId ? [selectedId] : []);
 }
 
 function renderTasks() {
@@ -692,55 +830,67 @@ function renderTasks() {
 }
 
 function attachTask(taskId: string) {
-  const task = TASKS.find((item) => item.id === taskId), frame = objects.find((item) => item.kind === "frame");
+  const task = TASKS.find((item) => item.id === taskId), frame = selectedFrame() || objects.find((item) => item.kind === "frame");
   if (!task || !frame) { showToast("Сначала добавьте фрейм для задачи"); return; }
   commit(() => objects.push({ id: createId(), kind: "text", color: "#ffffff", text: `(${task.title})`, x: finite(frame.x) - finite(frame.w, 720) / 2 + 40, y: finite(frame.y) - finite(frame.h, 460) / 2 + 80, parentId: frame.id }));
   tasksDialog?.close(); showToast("Задача прикреплена к фрейму");
 }
 
 function toBoardPoint(event: PointerEvent | WheelEvent): Point {
-  const point = svg.createSVGPoint();
-  point.x = event.clientX;
-  point.y = event.clientY;
-  const matrix = svg.getScreenCTM()?.inverse();
-  const transformed = matrix ? point.matrixTransform(matrix) : point;
-  return { x: transformed.x, y: transformed.y };
+  return renderer.toWorldPoint(event.clientX, event.clientY);
 }
 
-function snapToBody(point: Point) {
-  const body = nearestBody(point);
-  return body ? { x: finite(body.x), y: finite(body.y) } : point;
-}
-
-function nearestBody(point: Point) {
+function nearestBody(point: Point, frameId: string) {
   let best: BoardObject | undefined; let distance = 95;
   for (const object of objects) {
-    if (!["block", "ball", "pulley"].includes(object.kind)) continue;
+    if (!["block", "ball"].includes(object.kind) || object.parentId !== frameId) continue;
     const next = Math.hypot(finite(object.x) - point.x, finite(object.y) - point.y);
     if (next < distance) { best = object; distance = next; }
   }
   return best;
 }
 
-function toggleSimulation() {
-  simulating = !simulating;
-  if (simulating) {
-    simulationSnapshot = JSON.stringify(objects);
-    simulationLast = performance.now();
-    setSimulationButtonText("❚❚ Пауза");
-    if (simulationState) simulationState.textContent = "идёт";
-    simulationFrame = requestAnimationFrame(stepSimulation);
-  } else {
-    cancelAnimationFrame(simulationFrame); setSimulationButtonText("▷ Продолжить");
-    if (simulationState) simulationState.textContent = "пауза";
+function toggleSimulation(frameId = selectedFrame()?.id) {
+  const frame = scene.get(frameId);
+  if (!frame || frame.kind !== "frame") {
+    showToast("Выберите конкретный фрейм или тело внутри него");
+    return;
   }
+  if (simulating && simulatingFrameId === frame.id) {
+    stopSimulation(false);
+    setSimulationButtonText("▷ Продолжить");
+    render();
+    return;
+  }
+  if (simulating) stopSimulation(false);
+  selectedId = frame.id;
+  selectedIds = new Set([frame.id]);
+  simulating = true;
+  simulatingFrameId = frame.id;
+  simulationSnapshot = JSON.stringify(objects);
+  simulationLast = performance.now();
+  matterEngine = new MatterFrameEngine(frame, objects, Boolean(gravityInput?.checked));
+  setSimulationButtonText("❚❚ Пауза");
+  if (simulationState) simulationState.textContent = "идёт";
+  simulationFrame = requestAnimationFrame(stepSimulation);
+  render();
+}
+
+function stopSimulation(reset: boolean) {
+  simulating = false;
+  cancelAnimationFrame(simulationFrame);
+  matterEngine = null;
+  if (reset && simulationSnapshot) {
+    objects = normalizeObjects(JSON.parse(simulationSnapshot));
+    scene = new PhysicsScene(objects);
+  }
+  simulatingFrameId = null;
 }
 
 function resetSimulation() {
-  simulating = false; cancelAnimationFrame(simulationFrame);
-  if (simulationSnapshot) objects = normalizeObjects(JSON.parse(simulationSnapshot));
+  stopSimulation(true);
   setSimulationButtonText("▷ Запустить");
-  if (simulationState) simulationState.textContent = "пауза";
+  if (simulationState) simulationState.textContent = selectedFrame() ? "готов" : "выберите фрейм";
   render(); saveAndSync();
 }
 
@@ -749,57 +899,18 @@ function setSimulationButtonText(text: string) {
 }
 
 function stepSimulation(now: number) {
-  if (!simulating) return;
-  const dt = Math.min((now - simulationLast) / 1000, .035); simulationLast = now;
-  const activeFrame = objects.find((item) => item.id === selectedId && item.kind === "frame") || objects.find((item) => item.kind === "frame");
-  if (!activeFrame) { resetSimulation(); return; }
-  const bodies = objects.filter((item) => ["block", "ball"].includes(item.kind) && item.parentId === activeFrame.id);
-  for (const body of bodies) {
-    const mass = Math.max(finite(body.mass, 1), .1); let fx = 0, fy = gravityInput?.checked ? mass * 9.81 * 14 : 0;
-    for (const vector of objects.filter((item) => item.kind === "vector" && item.parentId === body.id)) {
-      const dx = finite(vector.x2) - finite(vector.x1), dy = finite(vector.y2) - finite(vector.y1), length = Math.hypot(dx, dy) || 1, force = finite(vector.force, vectorForce({ x: finite(vector.x1), y: finite(vector.y1) }, { x: finite(vector.x2), y: finite(vector.y2) }));
-      fx += (dx / length) * force * 24; fy += (dy / length) * force * 24;
-    }
-    for (const spring of objects.filter((item) => item.kind === "spring" && item.parentId === activeFrame.id)) {
-      const anchor = { x: finite(spring.x1), y: finite(spring.y1) }, end = { x: finite(spring.x2), y: finite(spring.y2) };
-      if (Math.hypot(finite(body.x) - end.x, finite(body.y) - end.y) < 90) {
-        const dx = finite(body.x) - anchor.x, dy = finite(body.y) - anchor.y, length = Math.hypot(dx, dy) || 1, rest = Math.hypot(end.x - anchor.x, end.y - anchor.y);
-        const force = -finite(spring.stiffness, 20) * ((length - rest) / 32);
-        fx += (dx / length) * force; fy += (dy / length) * force;
-      }
-    }
-    const velocity = body.velocity || { x: 0, y: 0 }; velocity.x += (fx / mass) * dt; velocity.y += (fy / mass) * dt;
-    const old = { x: finite(body.x), y: finite(body.y) }; const next = keepInFrame(body, { x: old.x + velocity.x * dt, y: old.y + velocity.y * dt });
-    if (next.x !== old.x + velocity.x * dt) velocity.x *= -.35;
-    if (next.y !== old.y + velocity.y * dt) velocity.y *= -.35;
-    body.velocity = velocity; moveObjectFrom(body, body, next.x - old.x, next.y - old.y);
+  if (!simulating || !matterEngine || !simulatingFrameId) return;
+  matterEngine.step(now - simulationLast);
+  simulationLast = now;
+  for (const moved of matterEngine.sync()) {
+    for (const force of scene.forcesFor(moved.object.id)) scene.entity(force).translate(moved.dx, moved.dy);
   }
   render();
   simulationFrame = requestAnimationFrame(stepSimulation);
 }
 
-function handleWheel(event: WheelEvent) {
-  event.preventDefault();
-  zoomAt(toBoardPoint(event), event.deltaY > 0 ? 1.1 : 0.9);
-  updateZoom();
-}
-
-function zoomAt(center: Point, factor: number) {
-  const nextWidth = clamp(viewBox.width * factor, 520, 2400);
-  const nextHeight = nextWidth * 0.5625;
-  const rx = (center.x - viewBox.x) / viewBox.width;
-  const ry = (center.y - viewBox.y) / viewBox.height;
-  viewBox = {
-    x: center.x - nextWidth * rx,
-    y: center.y - nextHeight * ry,
-    width: nextWidth,
-    height: nextHeight,
-  };
-}
-
 function updateZoom() {
-  svg.setAttribute("viewBox", `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`);
-  if (zoomOutput) zoomOutput.value = `${Math.round((1600 / viewBox.width) * 100)}%`;
+  if (zoomOutput) zoomOutput.value = `${Math.round(renderer.scale * 100)}%`;
 }
 
 function saveAndSync() {
@@ -812,7 +923,10 @@ function saveAndSync() {
 function loadBoard() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return migrateBoard(normalizeObjects(JSON.parse(saved)));
+    if (saved) {
+      const migrated = migrateBoard(normalizeObjects(JSON.parse(saved)));
+      return new PhysicsScene(migrated).validateForces();
+    }
   } catch {}
   return demoObjects();
 }
@@ -839,7 +953,7 @@ function demoObjects(): BoardObject[] {
   return [
     { id: frameId, kind: "frame", color: "#639bf2", label: "Схема сил", x: 800, y: 470, w: 1220, h: 650 },
     { id: blockId, kind: "block", color: "#639bf2", label: "m", x: 470, y: 480, w: 190, h: 115, parentId: frameId, mass: 1, velocity: { x: 0, y: 0 } },
-    { id: createId(), kind: "vector", color: "#ff401c", label: "Fтяж", x1: 470, y1: 480, x2: 470, y2: 650, parentId: blockId, force: 5.3 },
+    { id: createId(), kind: "vector", color: "#639bf2", label: "Fтяж", x1: 470, y1: 480, x2: 470, y2: 650, parentId: blockId, force: 5.3 },
     { id: createId(), kind: "vector", color: "#639bf2", label: "N", x1: 470, y1: 480, x2: 470, y2: 320, parentId: blockId, force: 5 },
     { id: createId(), kind: "surface", color: "#ffffff", x: 470, y: 600, w: 350, friction: .2, parentId: frameId },
     { id: createId(), kind: "pulley", color: "#ff401c", x: 1030, y: 280, r: 58, parentId: frameId },
@@ -867,6 +981,10 @@ function normalizeObjects(value: unknown): BoardObject[] {
       parentId: typeof source.parentId === "string" ? source.parentId.slice(0, 64) : undefined,
       force: numberOrUndefined(source.force), mass: numberOrUndefined(source.mass), friction: numberOrUndefined(source.friction), angle: numberOrUndefined(source.angle), stiffness: numberOrUndefined(source.stiffness), temperature: numberOrUndefined(source.temperature), protons: numberOrUndefined(source.protons), neutrons: numberOrUndefined(source.neutrons), electrons: numberOrUndefined(source.electrons),
     };
+    if (source.velocity && typeof source.velocity === "object") {
+      const velocity = source.velocity as Record<string, unknown>;
+      if (typeof velocity.x === "number" && typeof velocity.y === "number") object.velocity = { x: finite(velocity.x), y: finite(velocity.y) };
+    }
     if (Array.isArray(source.points)) {
       object.points = source.points.slice(0, 4000).flatMap((point) => {
         if (!point || typeof point !== "object") return [];
@@ -982,8 +1100,10 @@ function setupDataChannel(next: RTCDataChannel) {
     let message;
     try { message = JSON.parse(String(event.data)); } catch { return; }
     if (message.type === "state") {
-      objects = normalizeObjects(message.objects);
+      objects = new PhysicsScene(normalizeObjects(message.objects)).validateForces();
+      scene = new PhysicsScene(objects);
       selectedId = null;
+      selectedIds.clear();
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(objects)); } catch {}
       render();
     }

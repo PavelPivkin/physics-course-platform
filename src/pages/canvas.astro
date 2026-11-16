@@ -26,6 +26,7 @@ const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         <button class="icon-button" type="button" data-action="undo" title="Отменить" aria-label="Отменить">↶</button>
         <button class="icon-button" type="button" data-action="redo" title="Повторить" aria-label="Повторить">↷</button>
         <button class="icon-button" type="button" data-action="delete" title="Удалить выбранное" aria-label="Удалить выбранное">⌫</button>
+        <button class="icon-button clear-board-button" type="button" data-action="clear" title="Очистить всю доску" aria-label="Очистить всю доску">∅</button>
       </div>
 
       <div class="board-session-actions">
@@ -48,6 +49,7 @@ const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
             <path d="M20 15.2A8.4 8.4 0 0 1 8.8 4a8.4 8.4 0 1 0 11.2 11.2Z"></path>
           </svg>
         </button>
+        <button class="icon-button mobile-clear-button" type="button" data-action="clear" title="Очистить всю доску" aria-label="Очистить всю доску">∅</button>
         <button class="share-button" type="button" data-open-collaboration>
           <span aria-hidden="true">↗</span> Поделиться
         </button>
@@ -57,6 +59,9 @@ const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
     <aside class="tool-rail" aria-label="Инструменты доски">
       <button class="tool-button is-active" type="button" data-tool="select" aria-label="Выбор и перемещение" title="Выбор (V)">
         <span class="tool-icon">↖</span><span>Выбор</span>
+      </button>
+      <button class="tool-button" type="button" data-tool="pan" aria-label="Перемещение бесконечной доски" title="Перемещение доски (H)">
+        <span class="tool-icon">✋</span><span>Доска</span>
       </button>
       <button class="tool-button" type="button" data-tool="pen" aria-label="Карандаш" title="Карандаш (P)">
         <span class="tool-icon">✎</span><span>Карандаш</span>
@@ -151,10 +156,10 @@ const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       </section>
 
       <section class="panel-section simulation-section">
-        <div class="panel-heading"><p>Симуляция фрейма</p><span data-simulation-state>пауза</span></div>
+        <div class="panel-heading"><p>Симуляция фрейма</p><span data-simulation-state>выберите фрейм</span></div>
         <div class="simulation-actions"><button type="button" data-simulation="toggle">▷ Запустить</button><button type="button" data-simulation="reset">↺ Сброс</button></div>
         <label class="toggle-field"><input type="checkbox" data-gravity checked /> <span>Сила тяжести</span></label>
-        <p class="panel-hint">Силы и пружины действуют только на тела внутри выбранного фрейма.</p>
+        <p class="panel-hint" data-simulation-hint>Выберите фрейм или тело внутри него. Одновременно запускается только выбранный фрейм.</p>
       </section>
 
       <section class="panel-section formula-section">
@@ -174,30 +179,12 @@ const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 
     <section class="board-workspace" aria-label="Рабочая область физической доски">
       <div class="board-coordinate" aria-hidden="true">x</div>
-      <svg
+      <div
         class="physics-canvas"
         data-physics-canvas
-        viewBox="0 0 1600 900"
         role="application"
         aria-label="Интерактивная физическая доска"
-      >
-        <defs>
-          <pattern id="minorGrid" width="32" height="32" patternUnits="userSpaceOnUse">
-            <path d="M32 0H0V32" class="minor-grid-line"></path>
-          </pattern>
-          <pattern id="majorGrid" width="160" height="160" patternUnits="userSpaceOnUse">
-            <rect width="160" height="160" fill="url(#minorGrid)"></rect>
-            <path d="M160 0H0V160" class="major-grid-line"></path>
-          </pattern>
-          <marker id="forceArrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
-            <path d="M0 0L12 6L0 12Z" fill="context-stroke"></path>
-          </marker>
-        </defs>
-        <rect class="canvas-background" width="1600" height="900" fill="url(#majorGrid)"></rect>
-        <g data-board-layer></g>
-        <g data-preview-layer></g>
-        <g data-cursor-layer></g>
-      </svg>
+      ></div>
 
       <div class="canvas-tip" data-canvas-tip>
         <span>V</span> выберите объект · <span>F</span> нарисуйте силу · колесо — масштаб
