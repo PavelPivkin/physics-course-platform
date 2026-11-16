@@ -2,6 +2,13 @@
 set -euo pipefail
 
 nvm_dir="${NVM_DIR:-$HOME/.nvm}"
+
+# GitHub Actions уже добавляет Node 24 в PATH, но не устанавливает nvm.
+# В этом случае ничего переключать не нужно.
+if [[ "$(node --version 2>/dev/null || true)" == v24.* ]]; then
+  exec "$@"
+fi
+
 shopt -s nullglob
 node24_bins=("$nvm_dir"/versions/node/v24*/bin)
 
