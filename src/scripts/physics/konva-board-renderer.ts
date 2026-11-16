@@ -207,10 +207,12 @@ export class KonvaBoardRenderer {
     }
     if (object.kind === "block") {
       const w = finite(object.w, 170), h = finite(object.h, 105);
-      group.add(new Konva.Rect({ x: x - w / 2, y: y - h / 2, width: w, height: h, cornerRadius: 7, fill: "rgba(99,155,242,.14)", stroke: color, strokeWidth: 3 }));
-      group.add(new Konva.Circle({ x, y, radius: 6, fill: PALETTE.orange, listening: false }));
-      group.add(this.centeredText(x, y - 32, object.label || "", 22));
-      if (selected) { group.add(this.selectionRect(x - w / 2 - 12, y - h / 2 - 12, w + 24, h + 24, 8)); group.add(this.handle(x + w / 2, y + h / 2, "resize")); }
+      const body = new Konva.Group({ x, y, rotation: finite(object.angle) });
+      body.add(new Konva.Rect({ x: -w / 2, y: -h / 2, width: w, height: h, cornerRadius: 7, fill: "rgba(99,155,242,.14)", stroke: color, strokeWidth: 3 }));
+      body.add(new Konva.Circle({ x: 0, y: 0, radius: 6, fill: PALETTE.orange, listening: false }));
+      body.add(this.centeredText(0, -32, object.label || "", 22));
+      if (selected) { body.add(this.selectionRect(-w / 2 - 12, -h / 2 - 12, w + 24, h + 24, 8)); body.add(this.handle(w / 2, h / 2, "resize")); }
+      group.add(body);
       return group;
     }
     if (object.kind === "ball") {

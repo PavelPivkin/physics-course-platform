@@ -31,6 +31,7 @@ export class MatterFrameEngine {
         const body = object.kind === "ball"
           ? Matter.Bodies.circle(value(object.x), value(object.y), value(object.r, 58), options)
           : Matter.Bodies.rectangle(value(object.x), value(object.y), value(object.w, 170), value(object.h, 105), options);
+        if (object.kind === "block") Matter.Body.setAngle(body, value(object.angle) * Math.PI / 180);
         Matter.Body.setMass(body, Math.max(value(object.mass, 1), 0.1));
         this.bodies.set(object.id, body);
         this.lastPositions.set(object.id, { x: body.position.x, y: body.position.y });
@@ -82,6 +83,7 @@ export class MatterFrameEngine {
       const dx = body.position.x - previous.x, dy = body.position.y - previous.y;
       object.x = body.position.x;
       object.y = body.position.y;
+      if (object.kind === "block") object.angle = body.angle * 180 / Math.PI;
       object.velocity = { x: body.velocity.x, y: body.velocity.y };
       this.lastPositions.set(object.id, { x: body.position.x, y: body.position.y });
       moved.push({ object, dx, dy });

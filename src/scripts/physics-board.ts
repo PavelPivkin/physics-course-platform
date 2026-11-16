@@ -580,6 +580,7 @@ function constrainSelectedEntities() {
       const next = snapBodyToSurface(object, before);
       const snapDx = next.x - before.x, snapDy = next.y - before.y;
       object.x = next.x; object.y = next.y;
+      if (object.kind === "block") object.angle = next.angle;
       for (const force of scene.forcesFor(object.id)) scene.entity(force).translate(snapDx, snapDy);
     }
   }
@@ -770,10 +771,21 @@ function frameAt(point: Point) {
 }
 
 function snapBodyToSurface(body: BoardObject, point: Point) {
-  const surface = objects.find((item) => item.kind === "surface" && item.parentId === body.parentId && Math.abs(finite(item.angle)) < 3 && point.x >= finite(item.x) - finite(item.w, 330) / 2 && point.x <= finite(item.x) + finite(item.w, 330) / 2 && Math.abs(point.y - finite(item.y)) < 72);
-  if (!surface) return point;
-  const half = body.kind === "ball" ? finite(body.r, 58) : finite(body.h, 105) / 2;
-  return { x: point.x, y: finite(surface.y) - half - 3 };
+  const support = body.kind === "ball" ? finite(body.r, 58) : finite(body.h, 105) / 2;
+  let nearest: { x: number; y: number; angle: number; distance: number } | null = null;
+  for (const surface of objects.filter((item) => item.kind === "surface" && item.parentId === body.parentId)) {
+    const angle = finite(surface.angle) * Math.PI / 180;
+    const tangent = { x: Math.cos(angle), y: Math.sin(angle) };
+    const normal = { x: -Math.sin(angle), y: Math.cos(angle) };
+    const dx = point.x - finite(surface.x), dy = point.y - finite(surface.y);
+    const along = dx * tangent.x + dy * tangent.y;
+    if (Math.abs(along) > finite(surface.w, 330) / 2) continue;
+    const linePoint = { x: finite(surface.x) + tangent.x * along, y: finite(surface.y) + tangent.y * along };
+    const candidate = { x: linePoint.x - normal.x * (support + 3), y: linePoint.y - normal.y * (support + 3) };
+    const distance = Math.hypot(candidate.x - point.x, candidate.y - point.y);
+    if (distance <= 84 && (!nearest || distance < nearest.distance)) nearest = { ...candidate, angle: finite(surface.angle), distance };
+  }
+  return nearest || { ...point, angle: 0 };
 }
 
 function snap(value: number) { return Math.round(value / 12) * 12; }

@@ -61,7 +61,10 @@ export class BodyEntity extends PhysicsEntity {
       return { left: x - r, top: y - r, right: x + r, bottom: y + r };
     }
     const w = number(this.data.w, 170), h = number(this.data.h, 105);
-    return { left: x - w / 2, top: y - h / 2, right: x + w / 2, bottom: y + h / 2 };
+    const angle = number(this.data.angle) * Math.PI / 180;
+    const halfWidth = Math.abs(Math.cos(angle)) * w / 2 + Math.abs(Math.sin(angle)) * h / 2;
+    const halfHeight = Math.abs(Math.sin(angle)) * w / 2 + Math.abs(Math.cos(angle)) * h / 2;
+    return { left: x - halfWidth, top: y - halfHeight, right: x + halfWidth, bottom: y + halfHeight };
   }
 }
 
