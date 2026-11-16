@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+nvm_dir="${NVM_DIR:-$HOME/.nvm}"
+shopt -s nullglob
+node24_bins=("$nvm_dir"/versions/node/v24*/bin)
+
+if (( ${#node24_bins[@]} == 0 )); then
+  echo "Не найден установленный Node.js 24 в nvm." >&2
+  exit 1
+fi
+
+# nvm может не загружаться в неинтерактивных shell. Достаточно добавить
+# установленный бинарник Node 24 в PATH: npm и Astro возьмут именно его.
+export PATH="${node24_bins[${#node24_bins[@]} - 1]}:$PATH"
+exec "$@"

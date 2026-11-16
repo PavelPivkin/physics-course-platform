@@ -68,11 +68,12 @@ signaling — `8787`.
 
 ## Локальный запуск
 
-Требуется Node.js 24. Версия закреплена в `.nvmrc`.
+Требуется Node.js 24. Он уже установлен в системе; устанавливать его в проект
+или добавлять в зависимости не нужно. Все `npm run`-команды проекта сами
+переключаются на Node 24 через `scripts/node24`.
 
 ```bash
-nvm use
-npm install
+nvm exec 24 npm install
 npm run dev
 ```
 
@@ -89,7 +90,17 @@ npm run preview
 ## GitHub Pages
 
 Публикация запускается автоматически при каждом push в `main` через
-`.github/workflows/deploy.yml`.
+`.github/workflows/deploy.yml`; GitHub Actions собирает сайт на Node 24.
+
+### Как опубликовать изменения
+
+После проверки локально достаточно отправить коммит в основную ветку:
+
+```bash
+git push origin main
+```
+
+Отдельная команда деплоя не нужна: GitHub Pages сам соберёт и опубликует сайт.
 
 Адрес сайта:
 

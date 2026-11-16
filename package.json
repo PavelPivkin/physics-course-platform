@@ -6,12 +6,12 @@
     "node": ">=22.23.4"
   },
   "scripts": {
-    "dev": "astro dev",
-    "dev:lan": "astro dev --host 0.0.0.0",
-    "signal": "node server/signaling.mjs",
-    "build": "astro check && astro build",
-    "preview": "astro preview",
-    "check": "astro check"
+    "dev": "./scripts/node24 ./node_modules/.bin/astro dev",
+    "dev:lan": "./scripts/node24 ./node_modules/.bin/astro dev --host 0.0.0.0",
+    "signal": "./scripts/node24 server/signaling.mjs",
+    "build": "./scripts/node24 ./node_modules/.bin/astro check && ./scripts/node24 ./node_modules/.bin/astro build",
+    "preview": "./scripts/node24 ./node_modules/.bin/astro preview",
+    "check": "./scripts/node24 ./node_modules/.bin/astro check"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.12",
