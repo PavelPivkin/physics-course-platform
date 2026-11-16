@@ -1,0 +1,28 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import { presentationDecks } from "../../data/presentations";
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+---
+
+<BaseLayout title="Презентации интенсива — Физика" description="Управляемые преподавателем презентации по темам ОГЭ.">
+  <SiteHeader active="intensive" />
+  <main class="catalog-page page-shell">
+    <section class="catalog-intro">
+      <p class="eyebrow">Интенсив · преподавательский режим</p>
+      <h1>Презентации</h1>
+      <p>Reveal.js-презентации с пошаговым раскрытием, формулами KaTeX, SVG-схемами, заметками преподавателя и задачами для доски.</p>
+    </section>
+    <div class="module-grid">
+      {presentationDecks.map((deck, index) => (
+        <a class="module-card" href={`${base}presentations/${deck.slug}/`}>
+          <span>{String(index + 1).padStart(2, "0")} · {deck.duration}</span>
+          <p>{deck.module}</p>
+          <h2>{deck.title}</h2>
+          <div>{deck.skills.map((skill) => <i>{skill}</i>)}</div>
+          <strong>Открыть слайды →</strong>
+        </a>
+      ))}
+    </div>
+  </main>
+</BaseLayout>

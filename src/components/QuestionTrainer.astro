@@ -1,0 +1,190 @@
+---
+import type { TrainerQuestion } from "../data/ogeModules";
+
+interface Props {
+  trainerId: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  questions: TrainerQuestion[];
+}
+
+const { trainerId, eyebrow, title, description, questions } = Astro.props;
+---
+
+<section class="question-trainer" data-question-trainer={trainerId}>
+  <div class="trainer-heading">
+    <div>
+      <p class="eyebrow">{eyebrow}</p>
+      <h1>{title}</h1>
+      <p>{description}</p>
+    </div>
+    <div class="trainer-score" aria-live="polite">
+      <span>Верно</span>
+      <strong data-score>0</strong>
+      <small>из <span data-total>{questions.length}</span></small>
+    </div>
+  </div>
+
+  <div class="skill-progress" aria-label="Прогресс по навыкам" data-skill-progress></div>
+
+  <div class="question-shell">
+    <div class="question-topline">
+      <span data-question-number>01 / {String(questions.length).padStart(2, "0")}</span>
+      <span data-skill></span>
+    </div>
+    <div class="question-visual" data-visual hidden aria-hidden="true"></div>
+    <p class="question-formula" data-formula hidden></p>
+    <h2 data-prompt></h2>
+    <div class="question-options" data-options></div>
+    <div class="question-feedback" data-feedback hidden>
+      <strong data-feedback-title></strong>
+      <p data-explanation></p>
+      <button class="primary-button" type="button" data-next>Следующий вопрос <span>→</span></button>
+    </div>
+  </div>
+
+  <div class="trainer-finish" data-finish hidden>
+    <p class="eyebrow">Раунд завершён</p>
+    <h2><span data-final-score></span> / {questions.length}</h2>
+    <p data-final-message></p>
+    <div data-final-skills></div>
+    <button class="secondary-button" type="button" data-restart>Пройти ещё раз</button>
+  </div>
+
+  <script type="application/json" data-questions set:html={JSON.stringify(questions)} />
+</section>
+
+<script>
+  type Question = {
+    id: string;
+    skill: string;
+    prompt: string;
+    options: string[];
+    answer: number;
+    explanation: string;
+    formula?: string;
+    visual?: "vectors" | "thermal-bars" | "heating-graph" | "friction";
+  };
+
+  const visualMarkup = (kind?: Question["visual"]) => {
+    if (kind === "vectors") return `<svg viewBox="0 0 520 150" role="img" aria-label="Два противоположных вектора"><defs><marker id="arrow-o" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs><line x1="255" y1="58" x2="445" y2="58" class="accent-line" marker-end="url(#arrow-o)"/><line x1="255" y1="98" x2="65" y2="98" class="blue-line" marker-end="url(#arrow-o)"/><text x="352" y="43">5 Н</text><text x="145" y="128">9 Н</text></svg>`;
+    if (kind === "thermal-bars") return `<svg viewBox="0 0 520 230" role="img" aria-label="Столбчатая диаграмма количества теплоты"><line x1="55" y1="190" x2="485" y2="190"/><line x1="55" y1="25" x2="55" y2="190"/><g class="bars"><rect x="95" y="126" width="55" height="64"/><rect x="195" y="62" width="55" height="128"/><rect x="295" y="94" width="55" height="96"/><rect x="395" y="30" width="55" height="160"/></g><g class="axis-labels"><text x="112" y="216">1</text><text x="212" y="216">2</text><text x="312" y="216">3</text><text x="412" y="216">4</text><text x="65" y="42">Q</text></g></svg>`;
+    if (kind === "heating-graph") return `<svg viewBox="0 0 520 230" role="img" aria-label="График нагревания"><line x1="55" y1="190" x2="485" y2="190"/><line x1="55" y1="25" x2="55" y2="190"/><polyline points="65,175 205,95 360,95 465,38" class="graph-line"/><circle cx="205" cy="95" r="5"/><circle cx="360" cy="95" r="5"/><g class="axis-labels"><text x="466" y="216">t</text><text x="67" y="42">T</text><text x="250" y="82">плато</text></g></svg>`;
+    if (kind === "friction") return `<svg viewBox="0 0 520 190" role="img" aria-label="Брусок и силы"><defs><marker id="arrow-f" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="currentColor"/></marker></defs><line x1="35" y1="150" x2="485" y2="150"/><rect x="200" y="85" width="120" height="65"/><line x1="260" y1="72" x2="425" y2="72" class="accent-line" marker-end="url(#arrow-f)"/><line x1="260" y1="118" x2="105" y2="118" class="blue-line" marker-end="url(#arrow-f)"/><text x="350" y="58">v</text><text x="125" y="108">Fтр</text></svg>`;
+    return "";
+  };
+
+  document.querySelectorAll<HTMLElement>("[data-question-trainer]").forEach((root) => {
+    const data = root.querySelector<HTMLScriptElement>("[data-questions]");
+    const questions: Question[] = JSON.parse(data?.textContent ?? "[]");
+    const trainerId = root.dataset.questionTrainer ?? "trainer";
+    let index = 0;
+    let score = 0;
+    let locked = false;
+    const results: Record<string, { correct: number; total: number }> = {};
+
+    const prompt = root.querySelector<HTMLElement>("[data-prompt]");
+    const skill = root.querySelector<HTMLElement>("[data-skill]");
+    const number = root.querySelector<HTMLElement>("[data-question-number]");
+    const options = root.querySelector<HTMLElement>("[data-options]");
+    const scoreNode = root.querySelector<HTMLElement>("[data-score]");
+    const feedback = root.querySelector<HTMLElement>("[data-feedback]");
+    const feedbackTitle = root.querySelector<HTMLElement>("[data-feedback-title]");
+    const explanation = root.querySelector<HTMLElement>("[data-explanation]");
+    const formula = root.querySelector<HTMLElement>("[data-formula]");
+    const visual = root.querySelector<HTMLElement>("[data-visual]");
+    const shell = root.querySelector<HTMLElement>(".question-shell");
+    const finish = root.querySelector<HTMLElement>("[data-finish]");
+    const skillProgress = root.querySelector<HTMLElement>("[data-skill-progress]");
+
+    const updateSkillProgress = () => {
+      if (!skillProgress) return;
+      skillProgress.innerHTML = Object.entries(results).map(([name, value]) => {
+        const ratio = value.total ? Math.round((value.correct / value.total) * 100) : 0;
+        return `<div><span>${name}</span><i><b style="width:${ratio}%"></b></i><small>${value.correct}/${value.total}</small></div>`;
+      }).join("");
+    };
+
+    const render = () => {
+      const question = questions[index];
+      locked = false;
+      if (!question) return;
+      if (prompt) prompt.textContent = question.prompt;
+      if (skill) skill.textContent = question.skill;
+      if (number) number.textContent = `${String(index + 1).padStart(2, "0")} / ${String(questions.length).padStart(2, "0")}`;
+      if (formula) {
+        formula.textContent = question.formula ?? "";
+        formula.hidden = !question.formula;
+      }
+      if (visual) {
+        visual.innerHTML = visualMarkup(question.visual);
+        visual.hidden = !question.visual;
+      }
+      if (feedback) feedback.hidden = true;
+      if (options) {
+        options.innerHTML = "";
+        question.options.forEach((label, optionIndex) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.innerHTML = `<span>${String.fromCharCode(1040 + optionIndex)}</span>${label}`;
+          button.addEventListener("click", () => answer(optionIndex, button));
+          options.append(button);
+        });
+      }
+    };
+
+    const answer = (selected: number, button: HTMLButtonElement) => {
+      if (locked) return;
+      locked = true;
+      const question = questions[index];
+      const correct = selected === question.answer;
+      results[question.skill] ??= { correct: 0, total: 0 };
+      results[question.skill].total += 1;
+      if (correct) {
+        score += 1;
+        results[question.skill].correct += 1;
+      }
+      scoreNode && (scoreNode.textContent = String(score));
+      root.querySelectorAll<HTMLButtonElement>("[data-options] button").forEach((item, optionIndex) => {
+        item.disabled = true;
+        if (optionIndex === question.answer) item.classList.add("correct");
+      });
+      if (!correct) button.classList.add("wrong");
+      if (feedbackTitle) feedbackTitle.textContent = correct ? "Верно: модель собрана" : "Проверь ход рассуждения";
+      if (explanation) explanation.textContent = question.explanation;
+      if (feedback) feedback.hidden = false;
+      updateSkillProgress();
+    };
+
+    const complete = () => {
+      if (shell) shell.hidden = true;
+      if (finish) finish.hidden = false;
+      const finalScore = root.querySelector<HTMLElement>("[data-final-score]");
+      const finalMessage = root.querySelector<HTMLElement>("[data-final-message]");
+      const finalSkills = root.querySelector<HTMLElement>("[data-final-skills]");
+      if (finalScore) finalScore.textContent = String(score);
+      if (finalMessage) finalMessage.textContent = score === questions.length ? "Все модели распознаны без ошибок." : "Повтори навыки с результатом ниже 100% и запусти новый раунд.";
+      if (finalSkills) finalSkills.innerHTML = Object.entries(results).map(([name, value]) => `<p><span>${name}</span><strong>${value.correct}/${value.total}</strong></p>`).join("");
+      try {
+        localStorage.setItem(`physics-progress:${trainerId}`, JSON.stringify({ score, total: questions.length, results, updatedAt: new Date().toISOString() }));
+      } catch {}
+    };
+
+    root.querySelector<HTMLButtonElement>("[data-next]")?.addEventListener("click", () => {
+      index += 1;
+      if (index >= questions.length) complete(); else render();
+    });
+    root.querySelector<HTMLButtonElement>("[data-restart]")?.addEventListener("click", () => {
+      index = 0; score = 0; locked = false;
+      Object.keys(results).forEach((key) => delete results[key]);
+      scoreNode && (scoreNode.textContent = "0");
+      if (finish) finish.hidden = true;
+      if (shell) shell.hidden = false;
+      updateSkillProgress();
+      render();
+    });
+
+    render();
+  });
+</script>

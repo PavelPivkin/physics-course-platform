@@ -1,0 +1,30 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import PresentationDeck from "../../components/presentations/PresentationDeck";
+import { presentationDecks, type PresentationDeck as Deck } from "../../data/presentations";
+
+export function getStaticPaths() {
+  return presentationDecks.map((deck) => ({ params: { slug: deck.slug }, props: { deck } }));
+}
+
+interface Props { deck: Deck }
+const { deck } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+---
+
+<BaseLayout title={`${deck.title} — презентация`} description={deck.description}>
+  <SiteHeader active="intensive" />
+  <main class="presentation-page page-shell">
+    <div class="breadcrumbs"><a href={`${base}presentations/`}>Презентации</a><span>/</span><span>{deck.module}</span></div>
+    <section class="presentation-heading">
+      <div>
+        <p class="eyebrow">{deck.module} · {deck.duration}</p>
+        <h1>{deck.title}</h1>
+        <p>{deck.description}</p>
+      </div>
+      <div class="presentation-help"><span>Управление</span><p>← → шаги · F полный экран · O обзор · S заметки</p></div>
+    </section>
+    <PresentationDeck deck={deck} client:load />
+  </main>
+</BaseLayout>

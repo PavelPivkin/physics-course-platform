@@ -1,0 +1,46 @@
+.physics-reveal {
+  --r-background-color: #0b1e33;
+  --r-main-color: #fff;
+  --r-heading-color: #fff;
+  --r-link-color: #639bf2;
+  width: 100%;
+  height: min(78svh, 900px);
+  min-height: 560px;
+  border: 1px solid rgb(99 155 242 / 30%);
+  background: #0b1e33;
+  box-shadow: 0 28px 80px rgb(0 0 0 / 28%);
+  font-family: "Rubik", sans-serif;
+  font-weight: 300;
+}
+
+.physics-reveal .slides { text-align: left; }
+.physics-reveal .slides section { box-sizing: border-box; height: 100%; padding: 72px 82px; background-image: linear-gradient(rgb(99 155 242 / 7%) 1px, transparent 1px), linear-gradient(90deg, rgb(99 155 242 / 7%) 1px, transparent 1px); background-size: 64px 64px; }
+.physics-reveal .slide-index { position: absolute; top: 36px; right: 46px; color: #639bf2; font-size: 17px; letter-spacing: .12em; }
+.physics-reveal .slide-kicker { margin: 0 0 26px; color: #639bf2; text-transform: uppercase; letter-spacing: .18em; font-size: 18px; }
+.physics-reveal h2 { max-width: 1180px; margin: 0 0 44px; text-transform: uppercase; font-size: 58px; font-weight: 300; line-height: 1.02; letter-spacing: -.035em; }
+.physics-reveal .slide-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, .85fr); align-items: center; gap: 56px; }
+.physics-reveal .slide-single { max-width: 1050px; }
+.physics-reveal .slide-body { max-width: 980px; color: #a8b6c7; font-size: 29px; line-height: 1.55; }
+.physics-reveal ul { margin: 12px 0 0; padding: 0; list-style: none; }
+.physics-reveal li { position: relative; margin: 0; padding: 14px 0 14px 34px; border-bottom: 1px solid rgb(255 255 255 / 10%); color: #d8e1ec; font-size: 25px; line-height: 1.35; }
+.physics-reveal li::before { position: absolute; left: 0; color: #ff401c; content: "→"; }
+.physics-reveal .slide-formula { margin-top: 34px; padding: 24px 32px; border-left: 4px solid #ff401c; background: rgb(16 40 67 / 88%); font-size: 30px; }
+.physics-reveal .slide-formula .katex-display { margin: 0; text-align: left; }
+.physics-reveal .slide-answer { margin-top: 32px; padding: 22px 28px; border: 1px solid #ff401c; background: rgb(255 64 28 / 8%); }
+.physics-reveal .slide-answer span { display: block; margin-bottom: 10px; color: #639bf2; text-transform: uppercase; letter-spacing: .14em; font-size: 15px; }
+.physics-reveal .slide-answer strong { color: #fff; font-size: 28px; font-weight: 300; }
+.physics-reveal .slide-diagram { width: 100%; max-height: 420px; overflow: visible; fill: none; stroke: #214485; stroke-width: 3; }
+.physics-reveal .slide-diagram .accent { stroke: #ff401c; stroke-width: 6; }
+.physics-reveal .slide-diagram .blue { stroke: #639bf2; stroke-width: 6; }
+.physics-reveal .slide-diagram marker path { fill: #fff; stroke: none; }
+.physics-reveal .slide-diagram .accent-fill { fill: #ff401c; stroke: none; }
+.physics-reveal .slide-diagram text { fill: #fff; stroke: none; font-family: "Rubik", sans-serif; font-size: 30px; }
+.physics-reveal .particles circle { fill: #639bf2; stroke: none; }
+.physics-reveal .particles path { stroke: #ff401c; stroke-width: 2; opacity: .65; }
+.physics-reveal .power-steps { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px; min-height: 260px; color: #fff; font-family: KaTeX_Main, serif; font-size: 34px; }
+.physics-reveal .power-steps i { color: #639bf2; font-style: normal; }
+.physics-reveal .power-steps strong { color: #ff401c; font-size: 44px; font-weight: 300; }
+
+@media (max-width: 900px) {
+  .physics-reveal { height: 72svh; min-height: 500px; }
+}

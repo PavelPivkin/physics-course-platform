@@ -1,4 +1,72 @@
 ---
-import EmptyState from "../components/EmptyState.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import { boardTasks, curriculumModules, officialSource } from "../data/ogeModules";
 ---
-<EmptyState eyebrow="Связанная сущность" title="Задачи" description="Здесь появятся базовые, авторские и экзаменационные задачи, связанные с темами и проверяемыми навыками." active="practice" backHref="learn/" backLabel="К карте тем" />
+
+<BaseLayout title="Банк задач для доски — Физика" description="Авторские аналоги ОГЭ с ответами и пошаговыми решениями.">
+  <SiteHeader active="practice" />
+  <main class="catalog-page page-shell task-bank-page">
+    <section class="catalog-intro">
+      <p class="eyebrow">Урок · интенсив · домашняя работа</p>
+      <h1>Задачи для доски</h1>
+      <p>От короткой разминки до большого теплового баланса. У каждой задачи есть навык, уровень, происхождение, ответ и раскрываемое решение.</p>
+    </section>
+
+    <aside class="source-notice">
+      <div><span>{officialSource.status}</span><strong>{officialSource.title}</strong></div>
+      <p>{officialSource.note}</p>
+      <a href={officialSource.href} target="_blank" rel="noreferrer">Проверить документы ФИПИ ↗</a>
+    </aside>
+
+    <div class="task-toolbar" aria-label="Фильтр задач">
+      <button class="is-active" type="button" data-task-filter="all">Все · {boardTasks.length}</button>
+      {curriculumModules.map((module) => <button type="button" data-task-filter={module.id}>{module.title}</button>)}
+    </div>
+
+    <div class="task-bank" data-task-bank>
+      {boardTasks.map((task, index) => (
+        <article class="board-task" data-task-module={task.module}>
+          <header>
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <div><i>{task.level}</i><i>{task.origin}</i><i>{task.skill}</i></div>
+          </header>
+          {task.visual === "thermal-bars" && (
+            <svg class="task-visual" viewBox="0 0 520 230" role="img" aria-label="Столбчатая диаграмма количества теплоты">
+              <line x1="55" y1="190" x2="485" y2="190"/><line x1="55" y1="25" x2="55" y2="190"/>
+              <g><rect x="95" y="126" width="55" height="64"/><rect x="195" y="62" width="55" height="128"/><rect x="295" y="94" width="55" height="96"/><rect x="395" y="30" width="55" height="160"/></g>
+              <text x="104" y="216">1</text><text x="204" y="216">2</text><text x="304" y="216">3</text><text x="404" y="216">4</text><text x="65" y="42">Q</text>
+            </svg>
+          )}
+          {task.visual === "heating-graph" && (
+            <svg class="task-visual" viewBox="0 0 520 230" role="img" aria-label="График нагревания">
+              <line x1="55" y1="190" x2="485" y2="190"/><line x1="55" y1="25" x2="55" y2="190"/>
+              <polyline points="65,175 205,95 360,95 465,38"/><circle cx="205" cy="95" r="5"/><circle cx="360" cy="95" r="5"/>
+              <text x="190" y="216">4</text><text x="345" y="216">9</text><text x="466" y="216">t, мин</text><text x="65" y="42">T</text>
+            </svg>
+          )}
+          <h2>{task.statement}</h2>
+          {task.note && <p class="task-note">{task.note}</p>}
+          <details>
+            <summary>Показать решение</summary>
+            <ol>{task.solution.map((step) => <li>{step}</li>)}</ol>
+            <p><span>Ответ</span>{task.answer}</p>
+          </details>
+        </article>
+      ))}
+    </div>
+  </main>
+
+  <script>
+    const buttons = document.querySelectorAll<HTMLButtonElement>("[data-task-filter]");
+    const tasks = document.querySelectorAll<HTMLElement>("[data-task-module]");
+    buttons.forEach((button) => button.addEventListener("click", () => {
+      buttons.forEach((item) => item.classList.remove("is-active"));
+      button.classList.add("is-active");
+      const filter = button.dataset.taskFilter ?? "all";
+      tasks.forEach((task) => { task.hidden = filter !== "all" && task.dataset.taskModule !== filter; });
+    }));
+    const requestedModule = new URLSearchParams(window.location.search).get("module");
+    document.querySelector<HTMLButtonElement>(`[data-task-filter="${requestedModule}"]`)?.click();
+  </script>
+</BaseLayout>

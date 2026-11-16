@@ -1,0 +1,21 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import QuestionTrainer from "../../components/QuestionTrainer.astro";
+import { frictionQuestions } from "../../data/ogeModules";
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+---
+
+<BaseLayout title="Сила трения — тренажёр" description="Виды трения, направление, реакция опоры и второй закон Ньютона.">
+  <SiteHeader active="practice" />
+  <main class="trainer-page page-shell">
+    <div class="breadcrumbs"><a href={`${base}practice/`}>Тренажёры</a><span>/</span><span>Сила трения</span></div>
+    <QuestionTrainer
+      trainerId="friction"
+      eyebrow="Механика · сила трения"
+      title="Найди контакт"
+      description="Сначала определяем попытку относительного скольжения, затем направление силы и только после этого считаем."
+      questions={frictionQuestions}
+    />
+  </main>
+</BaseLayout>

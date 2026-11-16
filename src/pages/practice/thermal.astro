@@ -1,0 +1,21 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import QuestionTrainer from "../../components/QuestionTrainer.astro";
+import { thermalQuestions } from "../../data/ogeModules";
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+---
+
+<BaseLayout title="Тепловые процессы — тренажёр" description="Формулы, фазовые переходы, графики и тепловой баланс.">
+  <SiteHeader active="practice" />
+  <main class="trainer-page page-shell">
+    <div class="breadcrumbs"><a href={`${base}practice/`}>Тренажёры</a><span>/</span><span>Тепловые явления</span></div>
+    <QuestionTrainer
+      trainerId="thermal"
+      eyebrow="ОГЭ · тепловые явления"
+      title="Куда ушла энергия?"
+      description="Выбери физический процесс до вычислений. В раунде есть экзаменационные форматы с графиком и столбчатой диаграммой."
+      questions={thermalQuestions}
+    />
+  </main>
+</BaseLayout>

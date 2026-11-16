@@ -2,6 +2,9 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import SiteHeader from "../../components/SiteHeader.astro";
 import { entityLinks, topics, type Topic } from "../../data/catalog";
+import { curriculumModules } from "../../data/ogeModules";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 
 export function getStaticPaths() {
   return topics.map((topic) => ({ params: { slug: topic.slug }, props: { topic } }));
@@ -10,6 +13,13 @@ export function getStaticPaths() {
 interface Props { topic: Topic }
 const { topic } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+const module = curriculumModules.find((item) => item.theoryHref === `learn/${topic.slug}/`);
+const renderFormula = (formula: string) => katex.renderToString(formula, {
+  displayMode: true,
+  output: "htmlAndMathml",
+  throwOnError: true,
+  strict: "warn",
+});
 ---
 
 <BaseLayout title={`${topic.title} — Физика`} description={topic.summary}>
@@ -36,6 +46,17 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       </div>
     </section>
 
+    {module && (
+      <section class="topic-path page-shell">
+        <div><p class="eyebrow">Практический маршрут</p><h2>Понял → объяснил → решил → проверил</h2></div>
+        <nav aria-label="Материалы темы">
+          <a href={`${base}${module.presentationHref}`}><span>01</span>Слайды для урока</a>
+          <a href={`${base}tasks/?module=${module.id}`}><span>02</span>Задачи для доски</a>
+          <a href={`${base}${module.trainerHref}`}><span>03</span>Тренажёр навыков</a>
+        </nav>
+      </section>
+    )}
+
     <section class="theory-layout page-shell">
       <aside class="topic-aside">
         <p>В этой теме</p>
@@ -55,7 +76,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
             <span class="step-number">0{index + 1}</span>
             <h2>{section.title}</h2>
             <p>{section.text}</p>
-            {section.formula && <div class="theory-formula">{section.formula}</div>}
+            {section.formula && <div class="theory-formula" set:html={renderFormula(section.formula)} />}
             {section.note && <div class="theory-note"><strong>Проверь модель</strong><p>{section.note}</p></div>}
           </section>
         ))}

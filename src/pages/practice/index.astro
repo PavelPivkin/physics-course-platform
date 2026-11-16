@@ -12,6 +12,42 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       <h1>Тренажёры</h1>
       <p>Здесь упражнения собраны не только по темам, но и по навыкам и экзаменационным форматам.</p>
     </section>
+    <a class="trainer-card" href={`${base}practice/foundation/`}>
+      <div class="trainer-visual foundation-trainer-visual" aria-hidden="true">
+        <span>ΣF⃗</span><span>10⁻³</span><span>км/ч → м/с</span>
+      </div>
+      <div class="trainer-copy">
+        <p>Стартовый модуль · математика и СИ</p>
+        <h2>Собери расчёт</h2>
+        <span>Векторы, выражение формул, степени десяти, площадь, скорость и обратные переводы.</span>
+        <div class="trainer-meta"><span>7 вопросов</span><span>6 навыков</span><span>Прогресс сохраняется</span></div>
+      </div>
+      <span class="trainer-arrow">Начать →</span>
+    </a>
+    <a class="trainer-card" href={`${base}practice/thermal/`}>
+      <div class="trainer-visual thermal-trainer-visual" aria-hidden="true">
+        <span>Q = cmΔT</span><span>ΣQ = 0</span><span>график T(t)</span>
+      </div>
+      <div class="trainer-copy">
+        <p>ОГЭ · тепловые явления</p>
+        <h2>Куда ушла энергия?</h2>
+        <span>Фазовые переходы, выбор формулы, график нагревания, столбчатая диаграмма и тепловой баланс.</span>
+        <div class="trainer-meta"><span>6 вопросов</span><span>Экзаменационные модели</span><span>Разбор ошибки</span></div>
+      </div>
+      <span class="trainer-arrow">Начать →</span>
+    </a>
+    <a class="trainer-card" href={`${base}practice/friction/`}>
+      <div class="trainer-visual friction-trainer-visual" aria-hidden="true">
+        <span>μN</span><span>Fтр ←</span><span>ΣF = ma</span>
+      </div>
+      <div class="trainer-copy">
+        <p>Механика · сила трения</p>
+        <h2>Найди контакт</h2>
+        <span>Виды трения, направление, реакция опоры и второй закон Ньютона.</span>
+        <div class="trainer-meta"><span>5 вопросов</span><span>Модель до формулы</span><span>Прогресс сохраняется</span></div>
+      </div>
+      <span class="trainer-arrow">Начать →</span>
+    </a>
     <a class="trainer-card" href={`${base}practice/term-sorter/`}>
       <div class="trainer-visual" aria-hidden="true">
         <span>Давление</span><span>Паскаль</span><span>Манометр</span>

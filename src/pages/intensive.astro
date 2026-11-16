@@ -1,4 +1,40 @@
 ---
-import EmptyState from "../components/EmptyState.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import { curriculumModules } from "../data/ogeModules";
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 ---
-<EmptyState eyebrow="Закрытая траектория" title="Интенсив" description="Здесь тема продолжится короткими уроками, домашней работой, проверкой и разбором повторяющихся ошибок группы." active="intensive" backHref="" backLabel="На главную" />
+
+<BaseLayout title="Интенсив ОГЭ — учебные модули" description="Теория, презентации, практика и проверяемые навыки интенсива.">
+  <SiteHeader active="intensive" />
+  <main class="catalog-page page-shell">
+    <section class="catalog-intro">
+      <p class="eyebrow">ОГЭ 2027 · прототип программы</p>
+      <h1>Модули интенсива</h1>
+      <p>Каждый модуль связывает открытую теорию, преподавательские слайды, задачи для доски и тренажёр с сохранением результата по навыкам.</p>
+    </section>
+
+    <div class="intensive-sequence" aria-label="Последовательность работы">
+      <span>01 · Модель</span><i>→</i><span>02 · Разбор</span><i>→</i><span>03 · Практика</span><i>→</i><span>04 · Диагностика</span>
+    </div>
+
+    <div class="intensive-modules">
+      {curriculumModules.map((module, index) => (
+        <article class="intensive-module">
+          <div class="module-number">{String(index + 1).padStart(2, "0")}</div>
+          <div class="module-main">
+            <h2>{module.title}</h2>
+            <p>{module.summary}</p>
+            <div>{module.skills.map((skill) => <span>{skill}</span>)}</div>
+          </div>
+          <nav aria-label={`Материалы модуля ${module.title}`}>
+            <a href={`${base}${module.theoryHref}`}>Теория <span>→</span></a>
+            <a href={`${base}${module.presentationHref}`}>Слайды <span>→</span></a>
+            <a href={`${base}tasks/?module=${module.id}`}>Задачи <span>→</span></a>
+            <a href={`${base}${module.trainerHref}`}>Тренажёр <span>→</span></a>
+          </nav>
+        </article>
+      ))}
+    </div>
+  </main>
+</BaseLayout>
