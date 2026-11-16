@@ -39,7 +39,7 @@ const correctMemeImages = [
       <div>
         <p class="eyebrow">Тренажёр · ОГЭ №1</p>
         <h1>Разложи термины</h1>
-        <p>Увидел слово — быстро выбери, к чему оно относится. На раунд даётся 45 секунд, а сложные термины вернутся в следующих попытках.</p>
+        <p>Увидел слово — быстро выбери, к чему оно относится. На раунд даётся 60 секунд, а сложные термины вернутся в следующих попытках.</p>
         <ul>
           <li><span>01</span> Правильный ответ даёт очко и продолжает серию</li>
           <li><span>02</span> Ошибка запоминается в этом браузере</li>
@@ -57,7 +57,7 @@ const correctMemeImages = [
 
     <section class="game-board" data-game-board hidden>
       <header class="game-stats">
-        <div><span>Время</span><strong data-game-time>45</strong></div>
+        <div><span>Время</span><strong data-game-time>60</strong></div>
         <div><span>Очки</span><strong data-game-score>0</strong></div>
         <div><span>Серия</span><strong data-game-streak>0</strong></div>
         <button type="button" data-game-sound aria-pressed="true" aria-label="Выключить звук">♪</button>
@@ -115,7 +115,7 @@ const correctMemeImages = [
     let currentIndex = 0;
     let score = 0;
     let streak = 0;
-    let seconds = 45;
+    let seconds = 60;
     let timer;
     let locked = false;
     let soundEnabled = true;
@@ -204,7 +204,7 @@ const correctMemeImages = [
       memeReaction.classList.remove("show");
       memeReaction.classList.toggle("is-correct", type === "correct");
       window.requestAnimationFrame(() => memeReaction.classList.add("show"));
-      memeTimer = window.setTimeout(() => memeReaction.classList.remove("show"), 500);
+      memeTimer = window.setTimeout(() => memeReaction.classList.remove("show"), 1000);
     };
 
     const answer = (button) => {
@@ -261,7 +261,7 @@ const correctMemeImages = [
       currentIndex = 0;
       score = 0;
       streak = 0;
-      seconds = 45;
+      seconds = 60;
       locked = false;
       roundMistakes = [];
       if (intro) intro.hidden = true;
