@@ -24,5 +24,17 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       </div>
       <span class="trainer-arrow">Играть →</span>
     </a>
+    <a class="trainer-card" href={`${base}practice/unit-match/`}>
+      <div class="trainer-visual unit-trainer-visual" aria-hidden="true">
+        <span>Сила</span><span>Ньютон</span><span>F ↔ Н</span>
+      </div>
+      <div class="trainer-copy">
+        <p>Физические величины · СИ</p>
+        <h2>Собери пары</h2>
+        <span>Сопоставь физическую величину с её единицей измерения. Ошибочные пары вернутся раньше в следующем раунде.</span>
+        <div class="trainer-meta"><span>90 секунд</span><span>18 пар</span><span>3 поля</span></div>
+      </div>
+      <span class="trainer-arrow">Играть →</span>
+    </a>
   </main>
 </BaseLayout>

@@ -258,3 +258,24 @@ export const termCategories = [
   "Закон / принцип",
   "Объект / устройство",
 ] as const;
+
+export const unitPairs = [
+  { id: "length", quantity: "Длина", symbol: "l", unit: "метр", unitSymbol: "м", explanation: "Метр — основная единица длины в СИ." },
+  { id: "time", quantity: "Время", symbol: "t", unit: "секунда", unitSymbol: "с", explanation: "Секунда — основная единица времени в СИ." },
+  { id: "mass", quantity: "Масса", symbol: "m", unit: "килограмм", unitSymbol: "кг", explanation: "Килограмм — основная единица массы в СИ." },
+  { id: "temperature", quantity: "Температура", symbol: "T", unit: "кельвин", unitSymbol: "К", explanation: "Кельвин — основная единица термодинамической температуры в СИ." },
+  { id: "speed", quantity: "Скорость", symbol: "v", unit: "метр в секунду", unitSymbol: "м/с", explanation: "Скорость показывает путь, пройденный за единицу времени." },
+  { id: "acceleration", quantity: "Ускорение", symbol: "a", unit: "метр на секунду в квадрате", unitSymbol: "м/с²", explanation: "Ускорение показывает изменение скорости за одну секунду." },
+  { id: "force", quantity: "Сила", symbol: "F", unit: "ньютон", unitSymbol: "Н", explanation: "1 Н — сила, сообщающая телу массой 1 кг ускорение 1 м/с²." },
+  { id: "pressure", quantity: "Давление", symbol: "p", unit: "паскаль", unitSymbol: "Па", explanation: "1 Па = 1 Н/м²." },
+  { id: "energy", quantity: "Энергия", symbol: "E", unit: "джоуль", unitSymbol: "Дж", explanation: "Джоуль — единица энергии, работы и количества теплоты." },
+  { id: "power", quantity: "Мощность", symbol: "P", unit: "ватт", unitSymbol: "Вт", explanation: "1 Вт = 1 Дж/с." },
+  { id: "frequency", quantity: "Частота", symbol: "ν", unit: "герц", unitSymbol: "Гц", explanation: "1 Гц соответствует одному колебанию в секунду." },
+  { id: "current", quantity: "Сила тока", symbol: "I", unit: "ампер", unitSymbol: "А", explanation: "Ампер — основная единица силы электрического тока в СИ." },
+  { id: "voltage", quantity: "Напряжение", symbol: "U", unit: "вольт", unitSymbol: "В", explanation: "Вольт — единица электрического напряжения и разности потенциалов." },
+  { id: "resistance", quantity: "Сопротивление", symbol: "R", unit: "ом", unitSymbol: "Ом", explanation: "Ом — единица электрического сопротивления." },
+  { id: "charge", quantity: "Электрический заряд", symbol: "q", unit: "кулон", unitSymbol: "Кл", explanation: "1 Кл — заряд, переносимый током 1 А за 1 с." },
+  { id: "capacitance", quantity: "Электроёмкость", symbol: "C", unit: "фарад", unitSymbol: "Ф", explanation: "Фарад — единица электрической ёмкости." },
+  { id: "magnetic-induction", quantity: "Магнитная индукция", symbol: "B", unit: "тесла", unitSymbol: "Тл", explanation: "Тесла — единица магнитной индукции." },
+  { id: "density", quantity: "Плотность", symbol: "ρ", unit: "килограмм на кубический метр", unitSymbol: "кг/м³", explanation: "Плотность равна массе единицы объёма вещества." },
+] as const;

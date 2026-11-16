@@ -1,0 +1,277 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import { unitPairs } from "../../data/catalog";
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+---
+
+<BaseLayout title="Собери пары — величины и единицы" description="Игра на сопоставление физических величин и единиц измерения СИ.">
+  <SiteHeader active="practice" />
+  <main class="game-page page-shell" data-match-root>
+    <div class="breadcrumbs"><a href={`${base}practice/`}>Решать</a><span>/</span><span>Величины и единицы</span></div>
+
+    <section class="game-intro" data-match-intro>
+      <div>
+        <p class="eyebrow">Тренажёр · единицы СИ</p>
+        <h1>Собери пары</h1>
+        <p>Выбери физическую величину и её единицу измерения — порядок выбора не важен. За 90 секунд собери три поля по шесть пар.</p>
+        <ul>
+          <li><span>01</span> Верная пара фиксируется и увеличивает серию</li>
+          <li><span>02</span> Неверная пара остаётся на поле для новой попытки</li>
+          <li><span>03</span> Ошибки сохраняются и разбираются после раунда</li>
+        </ul>
+        <button class="primary-button game-start" type="button" data-match-start>Начать раунд <span>→</span></button>
+      </div>
+      <div class="intro-demo match-demo" aria-hidden="true">
+        <div class="match-demo-title">Найди соответствие</div>
+        <div class="match-demo-card quantity">Сила <span>F</span></div>
+        <div class="match-demo-link">↕</div>
+        <div class="match-demo-card unit">Ньютон <span>Н</span></div>
+        <div class="demo-streak">пара найдена ✓</div>
+      </div>
+    </section>
+
+    <section class="game-board match-board" data-match-board hidden>
+      <header class="game-stats">
+        <div><span>Время</span><strong data-match-time>90</strong></div>
+        <div><span>Пары</span><strong data-match-score>0/18</strong></div>
+        <div><span>Серия</span><strong data-match-streak>0</strong></div>
+        <button type="button" data-match-sound aria-pressed="true" aria-label="Выключить звук">♪</button>
+      </header>
+      <div class="game-progress"><span data-match-progress></span></div>
+      <div class="match-stage">
+        <div class="match-round-label"><span data-match-round>Поле 1 из 3</span><strong data-match-prompt>Выбери две карточки</strong></div>
+        <div class="match-columns">
+          <section>
+            <h2>Физическая величина</h2>
+            <div class="match-list" data-quantity-list></div>
+          </section>
+          <section>
+            <h2>Единица измерения</h2>
+            <div class="match-list" data-unit-list></div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="game-results" data-match-results hidden>
+      <p class="eyebrow">Раунд завершён</p>
+      <h1><span data-match-result>0</span> из 18 пар</h1>
+      <p data-match-summary></p>
+      <div class="result-actions">
+        <button class="primary-button" type="button" data-match-restart>Ещё раз <span>↻</span></button>
+        <a class="secondary-button" href={`${base}practice/`}>Все тренажёры</a>
+      </div>
+      <div class="mistake-review" data-match-review>
+        <div class="review-heading"><h2>Разобрать ошибки</h2><span data-match-mistake-count></span></div>
+        <div data-match-mistake-list></div>
+      </div>
+    </section>
+  </main>
+
+  <script define:vars={{ unitPairs }}>
+    const root = document.querySelector("[data-match-root]");
+    const intro = root?.querySelector("[data-match-intro]");
+    const board = root?.querySelector("[data-match-board]");
+    const results = root?.querySelector("[data-match-results]");
+    const quantityList = root?.querySelector("[data-quantity-list]");
+    const unitList = root?.querySelector("[data-unit-list]");
+    const timeNode = root?.querySelector("[data-match-time]");
+    const scoreNode = root?.querySelector("[data-match-score]");
+    const streakNode = root?.querySelector("[data-match-streak]");
+    const roundNode = root?.querySelector("[data-match-round]");
+    const promptNode = root?.querySelector("[data-match-prompt]");
+    const progressNode = root?.querySelector("[data-match-progress]");
+    const soundButton = root?.querySelector("[data-match-sound]");
+    let groups = [];
+    let groupIndex = 0;
+    let selectedQuantity = null;
+    let selectedUnit = null;
+    let matchedIds = new Set();
+    let score = 0;
+    let streak = 0;
+    let seconds = 90;
+    let timer;
+    let locked = false;
+    let soundEnabled = true;
+    let mistakes = [];
+    let audioContext;
+
+    const shuffle = (items) => items
+      .map((item) => ({ item, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ item }) => item);
+
+    const readMemory = () => {
+      try { return JSON.parse(localStorage.getItem("physics-unit-mistakes") || "{}"); }
+      catch { return {}; }
+    };
+
+    const makeGroups = () => {
+      const memory = readMemory();
+      const ordered = [
+        ...shuffle(unitPairs.filter((pair) => memory[pair.id]?.count)),
+        ...shuffle(unitPairs.filter((pair) => !memory[pair.id]?.count)),
+      ];
+      return [ordered.slice(0, 6), ordered.slice(6, 12), ordered.slice(12, 18)];
+    };
+
+    const playTone = (correct) => {
+      if (!soundEnabled) return;
+      audioContext ||= new AudioContext();
+      const now = audioContext.currentTime;
+      const notes = correct ? [523.25, 659.25] : [185];
+      notes.forEach((frequency, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = correct ? "sine" : "triangle";
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.0001, now + index * 0.06);
+        gain.gain.exponentialRampToValueAtTime(correct ? 0.065 : 0.04, now + index * 0.06 + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.06 + 0.15);
+        oscillator.connect(gain).connect(audioContext.destination);
+        oscillator.start(now + index * 0.06);
+        oscillator.stop(now + index * 0.06 + 0.18);
+      });
+    };
+
+    const cardMarkup = (pair, type) => {
+      const title = type === "quantity" ? pair.quantity : pair.unit;
+      const symbol = type === "quantity" ? pair.symbol : pair.unitSymbol;
+      return `<button type="button" data-match-card data-type="${type}" data-id="${pair.id}"><strong>${title}</strong><span>${symbol}</span></button>`;
+    };
+
+    const renderGroup = () => {
+      locked = false;
+      selectedQuantity = null;
+      selectedUnit = null;
+      matchedIds = new Set();
+      const group = groups[groupIndex];
+      if (!group) return finishGame();
+      if (roundNode) roundNode.textContent = `Поле ${groupIndex + 1} из ${groups.length}`;
+      if (promptNode) promptNode.textContent = "Выбери две карточки";
+      if (quantityList) quantityList.innerHTML = shuffle(group).map((pair) => cardMarkup(pair, "quantity")).join("");
+      if (unitList) unitList.innerHTML = shuffle(group).map((pair) => cardMarkup(pair, "unit")).join("");
+      root?.querySelectorAll("[data-match-card]").forEach((button) => button.addEventListener("click", () => selectCard(button)));
+    };
+
+    const rememberMistake = (pair, chosenId) => {
+      const memory = readMemory();
+      memory[pair.id] = { count: (memory[pair.id]?.count || 0) + 1, chosenId, updatedAt: new Date().toISOString() };
+      localStorage.setItem("physics-unit-mistakes", JSON.stringify(memory));
+    };
+
+    const clearSelection = () => {
+      root?.querySelectorAll("[data-match-card]").forEach((button) => button.classList.remove("selected", "wrong"));
+      selectedQuantity = null;
+      selectedUnit = null;
+    };
+
+    const checkPair = () => {
+      if (!selectedQuantity || !selectedUnit) return;
+      locked = true;
+      const isCorrect = selectedQuantity.dataset.id === selectedUnit.dataset.id;
+      const pair = unitPairs.find((item) => item.id === selectedQuantity.dataset.id);
+      if (isCorrect) {
+        score += 1;
+        streak += 1;
+        matchedIds.add(selectedQuantity.dataset.id);
+        selectedQuantity.classList.add("correct");
+        selectedUnit.classList.add("correct");
+        if (promptNode) promptNode.textContent = "Верная пара";
+        playTone(true);
+        window.setTimeout(() => {
+          selectedQuantity?.classList.add("matched");
+          selectedUnit?.classList.add("matched");
+          selectedQuantity = null;
+          selectedUnit = null;
+          locked = false;
+          if (matchedIds.size === groups[groupIndex].length) {
+            groupIndex += 1;
+            window.setTimeout(renderGroup, 280);
+          } else if (promptNode) promptNode.textContent = "Продолжай";
+        }, 320);
+      } else {
+        streak = 0;
+        selectedQuantity.classList.add("wrong");
+        selectedUnit.classList.add("wrong");
+        if (pair) {
+          mistakes.push({ ...pair, chosenUnit: unitPairs.find((item) => item.id === selectedUnit.dataset.id)?.unit || "—" });
+          rememberMistake(pair, selectedUnit.dataset.id);
+        }
+        if (promptNode) promptNode.textContent = "Не совпало — попробуй ещё";
+        playTone(false);
+        window.setTimeout(() => { clearSelection(); locked = false; }, 650);
+      }
+      if (scoreNode) scoreNode.textContent = `${score}/${unitPairs.length}`;
+      if (streakNode) streakNode.textContent = String(streak);
+      if (progressNode) progressNode.style.width = `${score / unitPairs.length * 100}%`;
+    };
+
+    function selectCard(button) {
+      if (locked || button.classList.contains("matched")) return;
+      const type = button.dataset.type;
+      const previous = type === "quantity" ? selectedQuantity : selectedUnit;
+      previous?.classList.remove("selected");
+      button.classList.add("selected");
+      if (type === "quantity") selectedQuantity = button;
+      else selectedUnit = button;
+      checkPair();
+    }
+
+    const finishGame = () => {
+      window.clearInterval(timer);
+      if (board) board.hidden = true;
+      if (results) results.hidden = false;
+      const resultNode = root?.querySelector("[data-match-result]");
+      const summaryNode = root?.querySelector("[data-match-summary]");
+      const countNode = root?.querySelector("[data-match-mistake-count]");
+      const listNode = root?.querySelector("[data-match-mistake-list]");
+      if (resultNode) resultNode.textContent = String(score);
+      if (summaryNode) summaryNode.textContent = score === unitPairs.length
+        ? "Все соответствия найдены. Единицы СИ узнаются уверенно."
+        : `Найдено ${score} из ${unitPairs.length}. Ошибочные соответствия появятся раньше в следующем раунде.`;
+      const uniqueMistakes = [...new Map(mistakes.map((item) => [item.id, item])).values()];
+      if (countNode) countNode.textContent = `${uniqueMistakes.length} за раунд`;
+      if (listNode) listNode.innerHTML = uniqueMistakes.length ? uniqueMistakes.map((item) => `
+        <article class="mistake-item">
+          <div><strong>${item.quantity}</strong><span>${item.symbol} → ${item.unitSymbol}</span></div>
+          <p>${item.explanation}</p>
+          <small>Вы выбрали: ${item.chosenUnit}</small>
+        </article>`).join("") : '<div class="perfect-round">Чистый раунд — все пары собраны без ошибок.</div>';
+    };
+
+    const startGame = () => {
+      groups = makeGroups();
+      groupIndex = 0;
+      score = 0;
+      streak = 0;
+      seconds = 90;
+      mistakes = [];
+      if (intro) intro.hidden = true;
+      if (results) results.hidden = true;
+      if (board) board.hidden = false;
+      if (timeNode) timeNode.textContent = String(seconds);
+      if (scoreNode) scoreNode.textContent = `0/${unitPairs.length}`;
+      if (streakNode) streakNode.textContent = "0";
+      if (progressNode) progressNode.style.width = "0%";
+      renderGroup();
+      window.clearInterval(timer);
+      timer = window.setInterval(() => {
+        seconds -= 1;
+        if (timeNode) timeNode.textContent = String(seconds);
+        if (seconds <= 0) finishGame();
+      }, 1000);
+    };
+
+    root?.querySelector("[data-match-start]")?.addEventListener("click", startGame);
+    root?.querySelector("[data-match-restart]")?.addEventListener("click", startGame);
+    soundButton?.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      soundButton.setAttribute("aria-pressed", String(soundEnabled));
+      soundButton.setAttribute("aria-label", soundEnabled ? "Выключить звук" : "Включить звук");
+      soundButton.textContent = soundEnabled ? "♪" : "×";
+    });
+  </script>
+</BaseLayout>
