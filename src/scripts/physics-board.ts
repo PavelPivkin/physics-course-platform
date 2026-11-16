@@ -196,7 +196,7 @@ taskResults?.addEventListener("click", (event) => {
 
 document.querySelectorAll<HTMLButtonElement>("[data-simulation]").forEach((button) => {
   button.addEventListener("click", () => {
-    if (button.dataset.simulation === "toggle") toggleSimulation(button);
+    if (button.dataset.simulation === "toggle") toggleSimulation();
     else resetSimulation();
   });
 });
@@ -302,7 +302,7 @@ function handlePointerDown(event: PointerEvent) {
     draftObject = {
       id: createId(),
       kind: activeTool,
-      color: activeTool === "vector" ? "#ff401c" : "#639bf2",
+      color: "#639bf2",
       label: activeTool === "vector" ? activeForce : undefined,
       x1: start.x,
       y1: start.y,
@@ -558,6 +558,7 @@ function moveObjectFrom(object: BoardObject, original: BoardObject, dx: number, 
   if (["frame", "block", "ball", "pulley", "formula", "text", "surface", "dipole", "atom", "orbit", "container"].includes(object.kind)) {
     const next = object.kind === "block" || object.kind === "ball" ? snapBodyToSurface(object, keepInFrame(object, { x: finite(original.x) + dx, y: finite(original.y) + dy })) : keepInFrame(object, { x: finite(original.x) + dx, y: finite(original.y) + dy });
     object.x = next.x; object.y = next.y;
+    if (object.kind === "frame") moveFrameContents(object.id, next.x - finite(original.x), next.y - finite(original.y));
     if (["block", "ball", "pulley"].includes(object.kind)) {
       const actualDx = next.x - finite(original.x), actualDy = next.y - finite(original.y);
       objects.filter((item) => item.kind === "vector" && item.parentId === object.id).forEach((vector) => {
@@ -572,6 +573,31 @@ function moveObjectFrom(object: BoardObject, original: BoardObject, dx: number, 
   } else if (object.kind === "path") {
     object.points = (original.points || []).map((point) => ({ x: point.x + dx, y: point.y + dy }));
   }
+}
+
+function moveFrameContents(frameId: string, dx: number, dy: number) {
+  for (const child of objects) {
+    if (child.id === frameId || !belongsToFrame(child, frameId)) continue;
+    if (["vector", "rope", "spring"].includes(child.kind)) {
+      child.x1 = finite(child.x1) + dx; child.y1 = finite(child.y1) + dy;
+      child.x2 = finite(child.x2) + dx; child.y2 = finite(child.y2) + dy;
+    } else if (child.kind === "path") {
+      child.points = (child.points || []).map((point) => ({ x: point.x + dx, y: point.y + dy }));
+    } else {
+      child.x = finite(child.x) + dx; child.y = finite(child.y) + dy;
+    }
+  }
+}
+
+function belongsToFrame(object: BoardObject, frameId: string) {
+  let parentId = object.parentId;
+  const seen = new Set<string>();
+  while (parentId && !seen.has(parentId)) {
+    if (parentId === frameId) return true;
+    seen.add(parentId);
+    parentId = objects.find((item) => item.id === parentId)?.parentId;
+  }
+  return false;
 }
 
 function inspectorFields(object: BoardObject) {
@@ -696,16 +722,16 @@ function nearestBody(point: Point) {
   return best;
 }
 
-function toggleSimulation(button: HTMLButtonElement) {
+function toggleSimulation() {
   simulating = !simulating;
   if (simulating) {
     simulationSnapshot = JSON.stringify(objects);
     simulationLast = performance.now();
-    button.textContent = "❚❚ Пауза";
+    setSimulationButtonText("❚❚ Пауза");
     if (simulationState) simulationState.textContent = "идёт";
     simulationFrame = requestAnimationFrame(stepSimulation);
   } else {
-    cancelAnimationFrame(simulationFrame); button.textContent = "▷ Продолжить";
+    cancelAnimationFrame(simulationFrame); setSimulationButtonText("▷ Продолжить");
     if (simulationState) simulationState.textContent = "пауза";
   }
 }
@@ -713,10 +739,13 @@ function toggleSimulation(button: HTMLButtonElement) {
 function resetSimulation() {
   simulating = false; cancelAnimationFrame(simulationFrame);
   if (simulationSnapshot) objects = normalizeObjects(JSON.parse(simulationSnapshot));
-  const toggle = document.querySelector<HTMLButtonElement>("[data-simulation='toggle']");
-  if (toggle) toggle.textContent = "▷ Запустить";
+  setSimulationButtonText("▷ Запустить");
   if (simulationState) simulationState.textContent = "пауза";
   render(); saveAndSync();
+}
+
+function setSimulationButtonText(text: string) {
+  document.querySelectorAll<HTMLButtonElement>("[data-simulation='toggle']").forEach((button) => button.textContent = text);
 }
 
 function stepSimulation(now: number) {
@@ -783,9 +812,25 @@ function saveAndSync() {
 function loadBoard() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return normalizeObjects(JSON.parse(saved));
+    if (saved) return migrateBoard(normalizeObjects(JSON.parse(saved)));
   } catch {}
   return demoObjects();
+}
+
+function migrateBoard(saved: BoardObject[]) {
+  if (!saved.length || saved.some((object) => object.kind === "frame")) return saved;
+  const frameId = createId();
+  const frame: BoardObject = { id: frameId, kind: "frame", color: "#639bf2", label: "Физическая модель", x: 800, y: 450, w: 1460, h: 800 };
+  const bodies = saved.filter((object) => ["block", "ball", "pulley"].includes(object.kind));
+  saved.forEach((object) => {
+    if (object.kind === "vector") object.parentId = nearestInList(bodies, { x: finite(object.x1), y: finite(object.y1) })?.id || frameId;
+    else object.parentId = frameId;
+  });
+  return [frame, ...saved];
+}
+
+function nearestInList(list: BoardObject[], point: Point) {
+  return list.reduce<BoardObject | undefined>((closest, item) => !closest || Math.hypot(finite(item.x) - point.x, finite(item.y) - point.y) < Math.hypot(finite(closest.x) - point.x, finite(closest.y) - point.y) ? item : closest, undefined);
 }
 
 function demoObjects(): BoardObject[] {
