@@ -2,7 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import "../styles/canvas.css";
 
-const homeUrl = import.meta.env.BASE_URL;
+const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
 ---
 
 <BaseLayout

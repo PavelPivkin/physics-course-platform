@@ -1,0 +1,28 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+---
+
+<BaseLayout title="Тренажёры — Физика" description="Короткие интерактивные тренажёры по навыкам и форматам ОГЭ.">
+  <SiteHeader active="practice" />
+  <main class="catalog-page page-shell">
+    <section class="catalog-intro">
+      <p class="eyebrow">Решать</p>
+      <h1>Тренажёры</h1>
+      <p>Здесь упражнения собраны не только по темам, но и по навыкам и экзаменационным форматам.</p>
+    </section>
+    <a class="trainer-card" href={`${base}practice/term-sorter/`}>
+      <div class="trainer-visual" aria-hidden="true">
+        <span>Давление</span><span>Паскаль</span><span>Манометр</span>
+      </div>
+      <div class="trainer-copy">
+        <p>ОГЭ · задание №1</p>
+        <h2>Разложи термины</h2>
+        <span>Определи категорию как можно быстрее. Ошибки сохранятся для повторения.</span>
+        <div class="trainer-meta"><span>45 секунд</span><span>30 терминов</span><span>6 категорий</span></div>
+      </div>
+      <span class="trainer-arrow">Играть →</span>
+    </a>
+  </main>
+</BaseLayout>

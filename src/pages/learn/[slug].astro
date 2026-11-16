@@ -1,0 +1,83 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import { entityLinks, topics, type Topic } from "../../data/catalog";
+
+export function getStaticPaths() {
+  return topics.map((topic) => ({ params: { slug: topic.slug }, props: { topic } }));
+}
+
+interface Props { topic: Topic }
+const { topic } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+---
+
+<BaseLayout title={`${topic.title} — Физика`} description={topic.summary}>
+  <SiteHeader active="learn" />
+  <main class="topic-page">
+    <section class="topic-hero page-shell">
+      <div class="breadcrumbs"><a href={`${base}learn/`}>Учиться</a><span>/</span><span>{topic.eyebrow}</span></div>
+      <div class="topic-hero-grid">
+        <div>
+          <p class="eyebrow">{topic.eyebrow}</p>
+          <h1>{topic.title}</h1>
+          <p class="topic-lead">{topic.summary}</p>
+          <div class="tag-row">{topic.tracks.map((track) => <span>{track}</span>)}</div>
+        </div>
+        <div class="topic-hero-symbol" aria-hidden="true">
+          <span>{topic.accent}</span>
+          <svg viewBox="0 0 320 220">
+            <path d="M22 180 C82 175 95 128 148 118 S227 50 296 37"></path>
+            <line x1="20" y1="180" x2="303" y2="180"></line>
+            <line x1="32" y1="194" x2="32" y2="23"></line>
+            <circle cx="148" cy="118" r="6"></circle>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="theory-layout page-shell">
+      <aside class="topic-aside">
+        <p>В этой теме</p>
+        <ol>
+          {topic.theory.map((section, index) => <li><a href={`#step-${index + 1}`}>{section.title}</a></li>)}
+        </ol>
+        <div class="skill-box">
+          <span>Навыки</span>
+          {topic.skills.map((skill) => <p>✓ {skill}</p>)}
+        </div>
+      </aside>
+
+      <article class="theory-content">
+        <div class="content-kicker"><span></span> Теория</div>
+        {topic.theory.map((section, index) => (
+          <section id={`step-${index + 1}`} class="theory-step">
+            <span class="step-number">0{index + 1}</span>
+            <h2>{section.title}</h2>
+            <p>{section.text}</p>
+            {section.formula && <div class="theory-formula">{section.formula}</div>}
+            {section.note && <div class="theory-note"><strong>Проверь модель</strong><p>{section.note}</p></div>}
+          </section>
+        ))}
+      </article>
+    </section>
+
+    <section class="connections-section page-shell">
+      <div class="section-heading">
+        <p class="eyebrow">Продолжить тему</p>
+        <h2>Одна тема — несколько способов разобраться</h2>
+        <p>Сейчас карточки показывают будущие связи. Позже наполнение будет подбираться автоматически по теме и навыку.</p>
+      </div>
+      <div class="entity-grid">
+        {entityLinks.map((entity) => (
+          <a class={`entity-card entity-${entity.kind}`} href={`${base}${entity.href}?topic=${topic.slug}`}>
+            <div><span>{entity.icon}</span><i></i></div>
+            <h3>{entity.title}</h3>
+            <p>{entity.description}</p>
+            <span class="entity-action">Перейти →</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  </main>
+</BaseLayout>

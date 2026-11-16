@@ -1,0 +1,61 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import { topics } from "../../data/catalog";
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+---
+
+<BaseLayout title="Карта тем — Физика" description="Открытая теория по физике для 7–11 классов, ОГЭ и ЕГЭ.">
+  <SiteHeader active="learn" />
+  <main class="catalog-page page-shell">
+    <section class="catalog-intro">
+      <p class="eyebrow">Учиться · открытая теория</p>
+      <h1>Карта физики</h1>
+      <p>Общая теория остаётся одной. Переключатель цели меняет глубину объяснения, подборку навыков и экзаменационные акценты.</p>
+    </section>
+
+    <div class="catalog-toolbar">
+      <div class="track-switch" aria-label="Цель обучения">
+        <button class="is-active" type="button" data-track="all">Все</button>
+        <button type="button" data-track="База">База</button>
+        <button type="button" data-track="ОГЭ">ОГЭ</button>
+        <button type="button" data-track="ЕГЭ">ЕГЭ</button>
+      </div>
+      <span>{topics.length} тем для прототипа</span>
+    </div>
+
+    <div class="catalog-list" data-topic-list>
+      {topics.map((topic, index) => (
+        <a class="catalog-row" href={`${base}learn/${topic.slug}/`} data-tracks={topic.tracks.join(",")}>
+          <span class="catalog-index">{String(index + 1).padStart(2, "0")}</span>
+          <div class="catalog-symbol">{topic.accent}</div>
+          <div class="catalog-copy">
+            <p>{topic.eyebrow}</p>
+            <h2>{topic.title}</h2>
+            <span>{topic.summary}</span>
+          </div>
+          <div class="catalog-tags">
+            {topic.tracks.map((track) => <span>{track}</span>)}
+          </div>
+          <span class="catalog-arrow">→</span>
+        </a>
+      ))}
+    </div>
+  </main>
+
+  <script>
+    const trackButtons = document.querySelectorAll<HTMLButtonElement>("[data-track]");
+    const topicRows = document.querySelectorAll<HTMLElement>("[data-tracks]");
+    trackButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        trackButtons.forEach((item) => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+        const track = button.dataset.track ?? "all";
+        topicRows.forEach((row) => {
+          row.hidden = track !== "all" && !(row.dataset.tracks ?? "").split(",").includes(track);
+        });
+      });
+    });
+  </script>
+</BaseLayout>

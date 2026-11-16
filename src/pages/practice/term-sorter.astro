@@ -1,0 +1,297 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SiteHeader from "../../components/SiteHeader.astro";
+import { termCards, termCategories } from "../../data/catalog";
+const base = import.meta.env.BASE_URL.replace(/\/?$/, "/");
+const memeImages = [
+  `${base}memes/owl.webp`,
+  `${base}memes/drysiasia.jpg`,
+  `${base}memes/danil.webp`,
+  `${base}memes/vibe-cat.webp`,
+  `${base}memes/unusual-bunny.jpg`,
+  `${base}memes/67-kid.jpg`,
+  `${base}memes/cheremsha.webp`,
+  `${base}memes/chill-guy.jpg`,
+  `${base}memes/tralalero.webp`,
+  `${base}memes/sad-hamster.webp`,
+];
+const correctMemeImages = [
+  `${base}memes/danil.webp`,
+  `${base}memes/vibe-cat.webp`,
+  `${base}memes/67-kid.jpg`,
+  `${base}memes/chill-guy.jpg`,
+  `${base}memes/tralalero.webp`,
+  `${base}memes/owl.webp`,
+];
+---
+
+<BaseLayout title="Разложи термины — тренажёр ОГЭ" description="Игра на классификацию физических понятий для задания №1 ОГЭ.">
+  <SiteHeader active="practice" />
+  <main
+    class="game-page page-shell"
+    data-game-root
+    data-meme-images={JSON.stringify(memeImages)}
+    data-correct-meme-images={JSON.stringify(correctMemeImages)}
+  >
+    <div class="breadcrumbs"><a href={`${base}practice/`}>Решать</a><span>/</span><span>Задание №1 ОГЭ</span></div>
+
+    <section class="game-intro" data-game-intro>
+      <div>
+        <p class="eyebrow">Тренажёр · ОГЭ №1</p>
+        <h1>Разложи термины</h1>
+        <p>Увидел слово — быстро выбери, к чему оно относится. На раунд даётся 45 секунд, а сложные термины вернутся в следующих попытках.</p>
+        <ul>
+          <li><span>01</span> Правильный ответ даёт очко и продолжает серию</li>
+          <li><span>02</span> Ошибка запоминается в этом браузере</li>
+          <li><span>03</span> В конце получишь объяснение каждой ошибки</li>
+        </ul>
+        <button class="primary-button game-start" type="button" data-game-start>Начать раунд <span>→</span></button>
+      </div>
+      <div class="intro-demo" aria-hidden="true">
+        <div class="demo-term">Амперметр</div>
+        <div class="demo-choice">Измерительный прибор <span>✓</span></div>
+        <div class="demo-choice muted">Единица</div>
+        <div class="demo-streak">+3 серия</div>
+      </div>
+    </section>
+
+    <section class="game-board" data-game-board hidden>
+      <header class="game-stats">
+        <div><span>Время</span><strong data-game-time>45</strong></div>
+        <div><span>Очки</span><strong data-game-score>0</strong></div>
+        <div><span>Серия</span><strong data-game-streak>0</strong></div>
+        <button type="button" data-game-sound aria-pressed="true" aria-label="Выключить звук">♪</button>
+      </header>
+      <div class="game-progress"><span data-game-progress></span></div>
+      <div class="game-stage">
+        <p>К чему относится термин?</p>
+        <h2 data-game-term>—</h2>
+        <div class="answer-grid">
+          {termCategories.map((category, index) => (
+            <button type="button" data-category={category}><span>{index + 1}</span>{category}</button>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="game-results" data-game-results hidden>
+      <p class="eyebrow">Раунд завершён</p>
+      <h1><span data-result-score>0</span> правильных</h1>
+      <p data-result-summary></p>
+      <div class="result-actions">
+        <button class="primary-button" type="button" data-game-restart>Ещё раз <span>↻</span></button>
+        <a class="secondary-button" href={`${base}learn/`}>Вернуться к темам</a>
+      </div>
+      <div class="mistake-review" data-mistake-review>
+        <div class="review-heading"><h2>Разобрать ошибки</h2><span data-mistake-count></span></div>
+        <div data-mistake-list></div>
+      </div>
+    </section>
+
+    <div class="meme-reaction" data-meme-reaction aria-hidden="true">
+      <img data-meme-image alt="" />
+    </div>
+  </main>
+
+  <script define:vars={{ termCards, termCategories }}>
+    const root = document.querySelector("[data-game-root]");
+    const memeImages = JSON.parse(root?.dataset.memeImages || "[]");
+    const correctMemeImages = JSON.parse(root?.dataset.correctMemeImages || "[]");
+    const intro = root?.querySelector("[data-game-intro]");
+    const board = root?.querySelector("[data-game-board]");
+    const results = root?.querySelector("[data-game-results]");
+    const startButton = root?.querySelector("[data-game-start]");
+    const restartButton = root?.querySelector("[data-game-restart]");
+    const categoryButtons = [...(root?.querySelectorAll("[data-category]") ?? [])];
+    const termNode = root?.querySelector("[data-game-term]");
+    const timeNode = root?.querySelector("[data-game-time]");
+    const scoreNode = root?.querySelector("[data-game-score]");
+    const streakNode = root?.querySelector("[data-game-streak]");
+    const progressNode = root?.querySelector("[data-game-progress]");
+    const soundButton = root?.querySelector("[data-game-sound]");
+    const memeReaction = root?.querySelector("[data-meme-reaction]");
+    const memeImage = root?.querySelector("[data-meme-image]");
+    let deck = [];
+    let currentIndex = 0;
+    let score = 0;
+    let streak = 0;
+    let seconds = 45;
+    let timer;
+    let locked = false;
+    let soundEnabled = true;
+    let roundMistakes = [];
+    let audioContext;
+    let lastMemeByType = { correct: -1, wrong: -1 };
+    let memeTimer;
+
+    [...new Set([...memeImages, ...correctMemeImages])].forEach((src) => {
+      const image = new Image();
+      image.src = src;
+    });
+
+    const readMemory = () => {
+      try { return JSON.parse(localStorage.getItem("physics-term-mistakes") || "{}"); }
+      catch { return {}; }
+    };
+
+    const shuffle = (items) => items
+      .map((item) => ({ item, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ item }) => item);
+
+    const makeDeck = () => {
+      const memory = readMemory();
+      const difficult = shuffle(termCards.filter((card) => memory[card.term]?.count));
+      const fresh = shuffle(termCards.filter((card) => !memory[card.term]?.count));
+      return [...difficult.slice(0, 8), ...fresh, ...difficult.slice(8)];
+    };
+
+    const playTone = (correct) => {
+      if (!soundEnabled) return;
+      audioContext ||= new AudioContext();
+      const now = audioContext.currentTime;
+      const frequencies = correct ? [523.25, 659.25] : [196];
+      frequencies.forEach((frequency, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = correct ? "sine" : "triangle";
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.0001, now + index * 0.055);
+        gain.gain.exponentialRampToValueAtTime(correct ? 0.075 : 0.045, now + index * 0.055 + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.055 + (correct ? 0.12 : 0.16));
+        oscillator.connect(gain).connect(audioContext.destination);
+        oscillator.start(now + index * 0.055);
+        oscillator.stop(now + index * 0.055 + 0.18);
+      });
+    };
+
+    const renderCard = () => {
+      if (currentIndex >= deck.length) return finishGame();
+      locked = false;
+      categoryButtons.forEach((button) => button.classList.remove("correct", "wrong"));
+      if (termNode) termNode.textContent = deck[currentIndex].term;
+      if (progressNode) progressNode.style.width = `${Math.min(100, currentIndex / deck.length * 100)}%`;
+    };
+
+    const rememberMistake = (card, chosen) => {
+      const memory = readMemory();
+      memory[card.term] = {
+        count: (memory[card.term]?.count || 0) + 1,
+        lastChosen: chosen,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem("physics-term-mistakes", JSON.stringify(memory));
+    };
+
+    const showRandomMeme = (type) => {
+      const pool = type === "correct" ? correctMemeImages : memeImages;
+      if (!memeReaction || !memeImage || !pool.length) return;
+      let nextIndex = Math.floor(Math.random() * pool.length);
+      if (pool.length > 1) {
+        while (nextIndex === lastMemeByType[type]) nextIndex = Math.floor(Math.random() * pool.length);
+      }
+      lastMemeByType[type] = nextIndex;
+
+      const updateShape = () => {
+        const ratio = memeImage.naturalWidth / Math.max(1, memeImage.naturalHeight);
+        memeImage.classList.toggle("is-square", ratio > 0.86 && ratio < 1.14);
+      };
+      memeImage.onload = updateShape;
+      memeImage.src = pool[nextIndex];
+      if (memeImage.complete) updateShape();
+
+      window.clearTimeout(memeTimer);
+      memeReaction.classList.remove("show");
+      memeReaction.classList.toggle("is-correct", type === "correct");
+      window.requestAnimationFrame(() => memeReaction.classList.add("show"));
+      memeTimer = window.setTimeout(() => memeReaction.classList.remove("show"), 500);
+    };
+
+    const answer = (button) => {
+      if (locked || !deck[currentIndex]) return;
+      locked = true;
+      const card = deck[currentIndex];
+      const chosen = button.dataset.category;
+      const isCorrect = chosen === card.category;
+      if (isCorrect) {
+        score += 1;
+        streak += 1;
+        button.classList.add("correct");
+        playTone(true);
+        showRandomMeme("correct");
+      } else {
+        streak = 0;
+        button.classList.add("wrong");
+        categoryButtons.find((item) => item.dataset.category === card.category)?.classList.add("correct");
+        roundMistakes.push({ ...card, chosen });
+        rememberMistake(card, chosen);
+        playTone(false);
+        showRandomMeme("wrong");
+      }
+      if (scoreNode) scoreNode.textContent = String(score);
+      if (streakNode) streakNode.textContent = String(streak);
+      window.setTimeout(() => { currentIndex += 1; renderCard(); }, isCorrect ? 280 : 720);
+    };
+
+    const finishGame = () => {
+      window.clearInterval(timer);
+      if (board) board.hidden = true;
+      if (results) results.hidden = false;
+      const resultScore = root?.querySelector("[data-result-score]");
+      const resultSummary = root?.querySelector("[data-result-summary]");
+      const mistakeCount = root?.querySelector("[data-mistake-count]");
+      const mistakeList = root?.querySelector("[data-mistake-list]");
+      if (resultScore) resultScore.textContent = String(score);
+      if (resultSummary) resultSummary.textContent = roundMistakes.length
+        ? `Ошибок: ${roundMistakes.length}. Ниже — короткий разбор, а эти термины появятся раньше в следующей игре.`
+        : "Без ошибок — категории уже различаются уверенно.";
+      if (mistakeCount) mistakeCount.textContent = `${roundMistakes.length} за раунд`;
+      if (mistakeList) {
+        mistakeList.innerHTML = roundMistakes.length ? roundMistakes.map((mistake) => `
+          <article class="mistake-item">
+            <div><strong>${mistake.term}</strong><span>${mistake.category}</span></div>
+            <p>${mistake.definition}</p>
+            <small>Вы выбрали: ${mistake.chosen}</small>
+          </article>`).join("") : '<div class="perfect-round">Чистый раунд. Можно переходить к смешанным заданиям.</div>';
+      }
+    };
+
+    const startGame = () => {
+      deck = makeDeck();
+      currentIndex = 0;
+      score = 0;
+      streak = 0;
+      seconds = 45;
+      locked = false;
+      roundMistakes = [];
+      if (intro) intro.hidden = true;
+      if (results) results.hidden = true;
+      if (board) board.hidden = false;
+      if (timeNode) timeNode.textContent = String(seconds);
+      if (scoreNode) scoreNode.textContent = "0";
+      if (streakNode) streakNode.textContent = "0";
+      renderCard();
+      window.clearInterval(timer);
+      timer = window.setInterval(() => {
+        seconds -= 1;
+        if (timeNode) timeNode.textContent = String(seconds);
+        if (seconds <= 0) finishGame();
+      }, 1000);
+    };
+
+    startButton?.addEventListener("click", startGame);
+    restartButton?.addEventListener("click", startGame);
+    categoryButtons.forEach((button) => button.addEventListener("click", () => answer(button)));
+    soundButton?.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      soundButton.setAttribute("aria-pressed", String(soundEnabled));
+      soundButton.setAttribute("aria-label", soundEnabled ? "Выключить звук" : "Включить звук");
+      soundButton.textContent = soundEnabled ? "♪" : "×";
+    });
+    window.addEventListener("keydown", (event) => {
+      if (board?.hidden) return;
+      const index = Number(event.key) - 1;
+      if (index >= 0 && index < categoryButtons.length) answer(categoryButtons[index]);
+    });
+  </script>
+</BaseLayout>
