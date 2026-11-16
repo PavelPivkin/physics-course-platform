@@ -67,6 +67,15 @@ const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       <button class="tool-button" type="button" data-tool="rope" aria-label="Нить" title="Нить (R)">
         <span class="tool-icon">⌁</span><span>Нить</span>
       </button>
+      <button class="tool-button" type="button" data-tool="pointer" aria-label="Общая указка" title="Общая указка">
+        <span class="tool-icon">⌖</span><span>Указка</span>
+      </button>
+      <button class="tool-button" type="button" data-tool="frame" aria-label="Физический фрейм" title="Физический фрейм">
+        <span class="tool-icon">▣</span><span>Фрейм</span>
+      </button>
+      <button class="tool-button" type="button" data-open-tasks aria-label="Прикрепить задачу" title="Задачи">
+        <span class="tool-icon">☷</span><span>Задачи</span>
+      </button>
       <div class="tool-divider"></div>
       <button class="tool-button" type="button" data-tool="block" aria-label="Добавить брусок" title="Брусок">
         <span class="tool-shape block-shape"></span><span>Брусок</span>
@@ -76,6 +85,12 @@ const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
       </button>
       <button class="tool-button" type="button" data-tool="pulley" aria-label="Добавить блок" title="Неподвижный блок">
         <span class="tool-shape pulley-shape"></span><span>Блок</span>
+      </button>
+      <button class="tool-button" type="button" data-tool="surface" aria-label="Добавить поверхность" title="Поверхность">
+        <span class="tool-icon">╱</span><span>Плоскость</span>
+      </button>
+      <button class="tool-button" type="button" data-tool="spring" aria-label="Добавить пружину" title="Пружина">
+        <span class="tool-icon">〰</span><span>Пружина</span>
       </button>
       <button class="tool-button" type="button" data-tool="text" aria-label="Добавить подпись" title="Подпись (T)">
         <span class="tool-icon">T</span><span>Текст</span>
@@ -102,6 +117,8 @@ const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
             <button type="button" data-object-color="#0b1e33" style="--swatch:#0b1e33" aria-label="Тёмно-синий"></button>
             <button type="button" data-object-color="#ffffff" style="--swatch:#ffffff" aria-label="Белый"></button>
           </div>
+          <div class="object-properties" data-object-properties></div>
+          <button class="object-delete" type="button" data-action="delete">Удалить объект</button>
         </div>
       </section>
 
@@ -116,6 +133,28 @@ const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
           <button type="button" data-force="Fₐ">F<sub>A</sub></button>
         </div>
         <p class="panel-hint">Выберите силу, затем протяните стрелку. Начало привяжется к центру ближайшего тела.</p>
+        <label class="scale-field"><span>Масштаб силы</span><select data-force-scale><option value="0.1">0,1 Н / клетка</option><option value="1" selected>1 Н / клетка</option><option value="1000">1 кН / клетка</option><option value="1000000">1 МН / клетка</option></select></label>
+      </section>
+
+      <section class="panel-section">
+        <div class="panel-heading"><p>Физическая палитра</p></div>
+        <div class="palette-grid">
+          <button type="button" data-template="rough-surface">Шероховатая поверхность</button>
+          <button type="button" data-template="incline">Наклонная плоскость</button>
+          <button type="button" data-template="movable-pulley">Подвижный блок</button>
+          <button type="button" data-template="dipole">Диполь</button>
+          <button type="button" data-template="two-bodies">Два тела</button>
+          <button type="button" data-template="atom">Атом</button>
+          <button type="button" data-template="orbit">Движение по окружности</button>
+          <button type="button" data-template="container">Тепловая ёмкость</button>
+        </div>
+      </section>
+
+      <section class="panel-section simulation-section">
+        <div class="panel-heading"><p>Симуляция фрейма</p><span data-simulation-state>пауза</span></div>
+        <div class="simulation-actions"><button type="button" data-simulation="toggle">▷ Запустить</button><button type="button" data-simulation="reset">↺ Сброс</button></div>
+        <label class="toggle-field"><input type="checkbox" data-gravity checked /> <span>Сила тяжести</span></label>
+        <p class="panel-hint">Силы и пружины действуют только на тела внутри выбранного фрейма.</p>
       </section>
 
       <section class="panel-section formula-section">
@@ -210,6 +249,14 @@ const homeUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/");
         <p class="dialog-status" data-dialog-status>
           Для локального урока запустите <code>npm run signal</code>. Для соединения через интернет сервер понадобится опубликовать с HTTPS/WSS.
         </p>
+      </form>
+    </dialog>
+
+    <dialog class="tasks-dialog" data-tasks-dialog>
+      <form method="dialog" class="tasks-card">
+        <div class="dialog-heading"><div><p>Банк заданий</p><h2>Прикрепить задачу</h2></div><button class="dialog-close" value="cancel" aria-label="Закрыть">×</button></div>
+        <input class="task-search" type="search" data-task-search placeholder="Поиск: сила, механика, ОГЭ…" />
+        <div class="task-results" data-task-results></div>
       </form>
     </dialog>
 

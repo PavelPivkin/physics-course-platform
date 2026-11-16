@@ -348,6 +348,19 @@
   cursor: pointer;
 }
 
+.object-properties { display: grid; gap: .55rem; margin-top: .9rem; }
+.property-field { display: grid; gap: .35rem; }
+.property-field span, .scale-field span, .toggle-field { color: var(--board-muted); font-size: .67rem; text-transform: uppercase; letter-spacing: .06em; }
+.property-field input, .scale-field select { min-height: 2.25rem; border: 1px solid var(--board-line); border-radius: .2rem; background: var(--board-surface); color: var(--white); padding: .35rem .5rem; font: inherit; }
+.object-delete { width: 100%; margin-top: .9rem; border: 1px solid rgb(255 64 28 / 50%); border-radius: .25rem; background: transparent; color: var(--orange-text); padding: .55rem; font: inherit; cursor: pointer; }
+.scale-field { display: grid; gap: .4rem; margin-top: .9rem; }
+.palette-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; }
+.palette-grid button, .simulation-actions button { border: 1px solid var(--board-line); border-radius: .25rem; background: var(--board-surface); color: var(--white); padding: .55rem; font: inherit; font-size: .7rem; line-height: 1.25; cursor: pointer; }
+.palette-grid button:hover, .simulation-actions button:hover { border-color: var(--light-blue); color: var(--light-blue); }
+.simulation-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; margin-bottom: .85rem; }
+.simulation-actions button:first-child { border-color: var(--orange); color: var(--orange-text); }
+.toggle-field { display: flex; align-items: center; gap: .5rem; text-transform: none; letter-spacing: normal; }
+
 .force-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -446,6 +459,11 @@
   display: block;
 }
 
+.physics-frame { fill: rgb(33 68 133 / 8%); stroke: var(--light-blue); stroke-width: 2; stroke-dasharray: 10 7; }
+.frame-label { fill: var(--light-blue); font-family: "Rubik", sans-serif; font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
+.resize-handle, .vector-handle { fill: var(--orange); stroke: var(--navy); stroke-width: 3; cursor: nwse-resize; }
+.vector-handle { cursor: crosshair; }
+
 .selection-ring {
   display: none;
   fill: none;
@@ -531,6 +549,23 @@
   stroke-width: 3;
 }
 
+.surface-line, .surface-hatch { fill: none; stroke-width: 5; stroke-linecap: round; }
+.surface-hatch { stroke: var(--board-muted); stroke-width: 2; }
+.spring-line { fill: none; stroke-width: 4; stroke-linejoin: round; }
+.object-caption, .atom-label { fill: var(--board-muted); font-family: "Rubik", sans-serif; font-size: 16px; text-anchor: middle; pointer-events: none; }
+.charge-positive { fill: rgb(255 64 28 / 20%); stroke: var(--orange); stroke-width: 3; }
+.charge-negative { fill: rgb(99 155 242 / 20%); stroke: var(--light-blue); stroke-width: 3; }
+.charge-text { fill: var(--white); font-size: 30px; text-anchor: middle; pointer-events: none; }
+.atom-orbit { fill: none; stroke: var(--light-blue); stroke-width: 2; stroke-dasharray: 5 5; }
+.atom-nucleus { fill: var(--orange); }
+.electron { fill: var(--light-blue); }
+.sun { fill: var(--orange); }
+.planet { fill: var(--light-blue); }
+.container-box { fill: rgb(99 155 242 / 8%); stroke: var(--light-blue); stroke-width: 3; }
+.shared-pointer { pointer-events: none; }
+.shared-pointer path { fill: var(--light-blue); }
+.shared-pointer text { fill: var(--blue-text); font-family: "Rubik", sans-serif; font-size: 17px; }
+
 .remote-cursor {
   pointer-events: none;
 }
@@ -606,6 +641,16 @@
   color: var(--white);
   box-shadow: 0 2rem 6rem rgb(0 0 0 / 40%);
 }
+
+.tasks-dialog { width: min(42rem, calc(100vw - 2rem)); padding: 0; border: 1px solid var(--board-line); border-radius: .35rem; background: var(--navy); color: var(--white); box-shadow: 0 2rem 6rem rgb(0 0 0 / 40%); }
+.tasks-dialog::backdrop { background: rgb(3 12 22 / 76%); backdrop-filter: blur(4px); }
+.tasks-card { padding: 1.5rem; }
+.task-search { width: 100%; min-height: 2.7rem; border: 1px solid var(--board-line); border-radius: .25rem; background: var(--board-surface); color: var(--white); padding: .55rem .7rem; font: inherit; }
+.task-results { display: grid; gap: .5rem; margin-top: 1rem; max-height: 52svh; overflow: auto; }
+.task-results button { display: grid; gap: .2rem; width: 100%; border: 1px solid var(--board-line); border-radius: .25rem; background: var(--board-surface); color: var(--white); padding: .75rem; text-align: left; font: inherit; cursor: pointer; }
+.task-results button:hover { border-color: var(--orange); }
+.task-results span { color: var(--blue-text); font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; }
+.task-results strong { font-size: .9rem; font-weight: 400; }.task-results small { color: var(--board-muted); }
 
 .collaboration-dialog::backdrop {
   background: rgb(3 12 22 / 76%);
